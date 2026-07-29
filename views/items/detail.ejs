@@ -1,0 +1,86 @@
+<%- include('../partials/head') %>
+<div class="rad-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="rad-main">
+    <%- include('../partials/topbar', { crumb: 'Raw Updates · ' + item.competitor_name, heading: 'Collected item', scanReturnTo: 'items/' + item.id }) %>
+    <div class="rad-content">
+      <div class="row g-3">
+        <div class="col-lg-8">
+          <div class="rad-card mb-3">
+            <div class="rad-card-head">
+              <h2><%= f.truncate(item.title, 90) %></h2>
+              <div class="rad-card-head-actions">
+                <% if (item.is_mock) { %><span class="rad-chip"><i class="fa-solid fa-flask"></i>Simulated (demo mode)</span><% } %>
+              </div>
+            </div>
+            <div class="rad-card-body">
+              <% if (item.excerpt) { %>
+                <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--rad-muted);">Excerpt</h3>
+                <p style="font-size:13.5px;color:var(--rad-ink-2);"><%= item.excerpt %></p>
+              <% } %>
+
+              <% if (item.diff_summary) { %>
+                <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--rad-muted);margin-top:18px;">Detected change (diff)</h3>
+                <pre class="rad-pre rad-diff" style="white-space:pre-wrap;"><%= item.diff_summary %></pre>
+              <% } %>
+
+              <% if (item.raw_content) { %>
+                <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--rad-muted);margin-top:18px;">Raw captured content</h3>
+                <pre class="rad-pre"><%= item.raw_content %></pre>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2>Provenance</h2></div>
+            <div class="rad-card-body">
+              <dl class="rad-dl" style="grid-template-columns:120px 1fr;">
+                <dt>Item ID</dt><dd class="rad-mono">#<%= item.id %></dd>
+                <dt>Competitor</dt><dd><a href="<%= u('competitors/' + item.competitor_id) %>"><%= item.competitor_name %></a></dd>
+                <dt>Source</dt><dd><%= item.source_label || '—' %></dd>
+                <dt>Collector</dt><dd class="rad-mono"><%= item.connector_key %></dd>
+                <dt>Watch target</dt><dd><%= item.source_type %></dd>
+                <dt>Author</dt><dd><%= item.author || '—' %></dd>
+                <dt>URL</dt>
+                <dd><% if (item.url) { %><a href="<%= item.url %>" target="_blank" rel="noopener"><%= f.truncate(item.url, 42) %> <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i></a><% } else { %>—<% } %></dd>
+                <dt>Published</dt><dd><%= f.fmtDateTime(item.published_at) %></dd>
+                <dt>Captured</dt><dd><%= f.fmtDateTime(item.captured_at) %></dd>
+                <dt>Change type</dt><dd><span class="rad-badge <%= item.change_type === 'changed' ? 'sev-medium' : (item.change_type === 'new' ? 'st-new' : 'st-dismissed') %>"><%= item.change_type %></span></dd>
+                <dt>Credibility</dt><dd><%= item.credibility %>/100</dd>
+                <dt>Processing</dt><dd><span class="rad-badge <%= item.processing_status === 'analysed' ? 'st-confirmed' : 'st-new' %>"><%= item.processing_status %></span></dd>
+                <dt>Content hash</dt><dd class="rad-mono" style="word-break:break-all;font-size:11px;"><%= item.content_hash %></dd>
+                <dt>Scan run</dt>
+                <dd><% if (item.scan_run_id) { %><a href="<%= u('runs/' + item.scan_run_id) %>">#<%= item.scan_run_id %></a><% } else { %>—<% } %></dd>
+              </dl>
+            </div>
+          </div>
+
+          <div class="rad-card">
+            <div class="rad-card-head"><h2>Signals citing this item</h2></div>
+            <div class="rad-card-body tight">
+              <% if (!signals.length) { %>
+                <div class="rad-card-body text-muted-2" style="font-size:13px;">This item has not contributed to a signal.</div>
+              <% } else { %>
+                <div class="rad-table-wrap"><table class="rad-table"><tbody>
+                  <% signals.forEach(function (s) { %>
+                    <tr>
+                      <td>
+                        <a class="rad-td-title" href="<%= u('signals/' + s.id) %>"><%= f.truncate(s.title, 58) %></a>
+                        <div class="rad-td-sub"><%= f.signalLabel(s.signal_type) %></div>
+                      </td>
+                      <td class="num"><%= s.confidence %></td>
+                      <td><span class="rad-badge <%= f.SEVERITY_META[s.severity].badge %>"><%= s.severity %></span></td>
+                    </tr>
+                  <% }); %>
+                </tbody></table></div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

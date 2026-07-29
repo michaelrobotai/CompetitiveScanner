@@ -1,0 +1,35 @@
+<article class="rad-signal-card tp-<%= f.signalColor(signal.signal_type) %>">
+  <div class="rsc-head">
+    <span class="rsc-icon"><i class="<%= f.signalIcon(signal.signal_type) %>"></i></span>
+    <span class="rsc-head-meta">
+      <span class="rsc-competitor"><%= signal.competitor_name %></span>
+      <span class="rsc-type"><%= f.signalLabel(signal.signal_type) %></span>
+    </span>
+    <span class="rad-badge <%= f.SEVERITY_META[signal.severity].badge %>"><%= f.SEVERITY_META[signal.severity].label %></span>
+  </div>
+
+  <div class="rsc-title"><a href="<%= u('signals/' + signal.id) %>"><%= signal.title %></a></div>
+  <% if (signal.summary) { %><div class="rsc-summary"><%= signal.summary %></div><% } %>
+
+  <div class="rsc-meters">
+    <div>
+      <div class="rsc-meter-label"><span>Confidence</span><span><%= signal.confidence %></span></div>
+      <div class="rad-meter <%= signal.confidence >= 70 ? 'm-high' : (signal.confidence >= 50 ? 'm-mid' : 'm-low') %>">
+        <span style="width: <%= signal.confidence %>%"></span>
+      </div>
+    </div>
+    <div>
+      <div class="rsc-meter-label"><span>Impact</span><span><%= signal.impact %></span></div>
+      <div class="rad-meter <%= signal.impact >= 80 ? 'm-high' : (signal.impact >= 60 ? 'm-mid' : 'm-low') %>">
+        <span style="width: <%= signal.impact %>%"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="rsc-foot">
+    <span><i class="fa-regular fa-clock"></i> <%= f.timeAgo(signal.detected_at) %></span>
+    <span><i class="fa-solid fa-link"></i> <%= signal.evidence_count %> evidence</span>
+    <span><i class="fa-solid fa-layer-group"></i> <%= signal.corroborating_sources %> src</span>
+    <span class="ms-auto rad-badge <%= f.STATUS_META[signal.status].badge %>"><%= f.STATUS_META[signal.status].label %></span>
+  </div>
+</article>

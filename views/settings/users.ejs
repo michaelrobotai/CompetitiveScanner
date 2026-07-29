@@ -1,0 +1,166 @@
+<%- include('../partials/head') %>
+<div class="rad-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="rad-main">
+    <%- include('../partials/topbar', { crumb: 'Administration', heading: 'Users & Roles', scanReturnTo: 'settings/users' }) %>
+    <div class="rad-content">
+      <%- include('../partials/flash') %>
+
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2><i class="fa-solid fa-users me-2 text-muted-2"></i>Users</h2><span class="rad-sub"><%= rows.length %> accounts</span></div>
+            <div class="rad-card-body tight">
+              <div class="rad-table-wrap">
+                <table class="rad-table">
+                  <thead><tr><th>User</th><th>Role</th><th>Status</th><th class="num">Reviews</th><th class="nowrap">Last login</th><th></th></tr></thead>
+                  <tbody>
+                    <% rows.forEach(function (r) { %>
+                      <tr>
+                        <td>
+                          <span class="rad-td-title"><%= r.full_name %></span>
+                          <div class="rad-td-sub"><%= r.email %><%= r.job_title ? ' · ' + r.job_title : '' %></div>
+                        </td>
+                        <td><span class="rad-badge <%= r.role === 'admin' ? 'st-merged' : (r.role === 'analyst' ? 'st-confirmed' : 'st-dismissed') %>"><%= r.role %></span></td>
+                        <td><span class="rad-badge <%= r.status === 'active' ? 'st-confirmed' : 'sev-critical' %>"><%= r.status %></span></td>
+                        <td class="num"><%= r.signals_reviewed %></td>
+                        <td class="nowrap rad-td-sub"><%= r.last_login_at ? f.timeAgo(r.last_login_at) : 'never' %></td>
+                        <td class="nowrap">
+                          <button class="btn btn-ghost btn-xs" type="button" data-toggle-target="usr-<%= r.id %>"><i class="fa-solid fa-pen"></i></button>
+                          <form class="rad-inline-form" method="post" action="<%= u('settings/users/' + r.id + '/delete') %>" data-confirm="Delete user <%= r.email %>?">
+                            <button class="btn btn-ghost btn-xs" type="submit"><i class="fa-solid fa-trash"></i></button>
+                          </form>
+                        </td>
+                      </tr>
+                      <tr id="usr-<%= r.id %>" hidden>
+                        <td colspan="6" style="background:var(--rad-surface-2);">
+                          <form method="post" action="<%= u('settings/users/' + r.id) %>" class="row g-2 align-items-end">
+                            <div class="col-md-4">
+                              <label class="form-label">Full name</label>
+                              <input class="form-control form-control-sm" name="full_name" value="<%= r.full_name %>">
+                            </div>
+                            <div class="col-md-3">
+                              <label class="form-label">Job title</label>
+                              <input class="form-control form-control-sm" name="job_title" value="<%= r.job_title || '' %>">
+                            </div>
+                            <div class="col-md-2">
+                              <label class="form-label">Role</label>
+                              <select class="form-select form-select-sm" name="role">
+                                <% roles.forEach(function (role) { %>
+                                  <option value="<%= role %>" <%= r.role === role ? 'selected' : '' %>><%= role %></option>
+                                <% }); %>
+                              </select>
+                            </div>
+                            <div class="col-md-2">
+                              <label class="form-label">Status</label>
+                              <select class="form-select form-select-sm" name="status">
+                                <option value="active" <%= r.status === 'active' ? 'selected' : '' %>>active</option>
+                                <option value="suspended" <%= r.status === 'suspended' ? 'selected' : '' %>>suspended</option>
+                              </select>
+                            </div>
+                            <div class="col-md-3">
+                              <label class="form-label">New password</label>
+                              <input class="form-control form-control-sm" type="text" name="password" placeholder="leave blank to keep">
+                            </div>
+                            <div class="col-md-2">
+                              <button class="btn btn-rad btn-sm w-100" type="submit"><i class="fa-solid fa-check"></i>Save</button>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="rad-card">
+            <div class="rad-card-head"><h2><i class="fa-solid fa-table-list me-2 text-muted-2"></i>Role permission matrix</h2></div>
+            <div class="rad-card-body tight">
+              <div class="rad-table-wrap">
+                <table class="rad-table rad-matrix">
+                  <thead><tr><th>Capability</th><% roles.forEach(function (r) { %><th><%= r %></th><% }); %></tr></thead>
+                  <tbody>
+                    <% var allPerms = []; roles.forEach(function (r) { (permissions[r] || []).forEach(function (p) { if (allPerms.indexOf(p) < 0) allPerms.push(p); }); }); allPerms.sort(); %>
+                    <% allPerms.forEach(function (p) { %>
+                      <tr>
+                        <td class="rad-mono"><%= p %></td>
+                        <% roles.forEach(function (r) { %>
+                          <td>
+                            <% if ((permissions[r] || []).indexOf(p) >= 0) { %>
+                              <i class="fa-solid fa-circle-check yes"></i>
+                            <% } else { %>
+                              <i class="fa-solid fa-minus no"></i>
+                            <% } %>
+                          </td>
+                        <% }); %>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2>Create user</h2></div>
+            <div class="rad-card-body">
+              <form method="post" action="<%= u('settings/users') %>">
+                <div class="mb-3">
+                  <label class="form-label" for="full_name">Full name *</label>
+                  <input class="form-control" id="full_name" name="full_name" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="email">Email *</label>
+                  <input class="form-control" id="email" name="email" type="email" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="job_title">Job title</label>
+                  <input class="form-control" id="job_title" name="job_title">
+                </div>
+                <div class="row g-2 mb-3">
+                  <div class="col-6">
+                    <label class="form-label" for="role">Role</label>
+                    <select class="form-select" id="role" name="role">
+                      <% roles.forEach(function (r) { %><option value="<%= r %>" <%= r === 'viewer' ? 'selected' : '' %>><%= r %></option><% }); %>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label" for="status">Status</label>
+                    <select class="form-select" id="status" name="status">
+                      <option value="active">active</option><option value="suspended">suspended</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="password">Password *</label>
+                  <input class="form-control" id="password" name="password" type="text" required minlength="6" placeholder="min. 6 characters">
+                  <div class="form-text">Stored as a bcrypt hash — never in plain text.</div>
+                </div>
+                <button class="btn btn-rad w-100" type="submit"><i class="fa-solid fa-user-plus"></i>Create user</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="rad-card">
+            <div class="rad-card-head"><h2>Role definitions</h2></div>
+            <div class="rad-card-body">
+              <dl class="rad-dl" style="grid-template-columns:90px 1fr;">
+                <dt><span class="rad-badge st-merged">admin</span></dt>
+                <dd>Everything an analyst can do, plus users &amp; roles, connector configuration, settings and the audit log.</dd>
+                <dt><span class="rad-badge st-confirmed">analyst</span></dt>
+                <dd>Manage competitors and sources, trigger scans, triage signals, manage digests, generate reports and add notes.</dd>
+                <dt><span class="rad-badge st-dismissed">viewer</span></dt>
+                <dd>Read-only: dashboard, competitors, signals, raw items, runs, reports and digest settings view.</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

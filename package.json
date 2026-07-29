@@ -1,0 +1,23 @@
+{
+  "name": "competitive-radar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Competitive Radar - automated competitor intelligence signals",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed:passwords": "node db/set-passwords.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "connect-flash": "^0.1.1",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "mysql2": "^3.11.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.14"
+  }
+}

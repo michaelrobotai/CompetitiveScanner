@@ -1,0 +1,265 @@
+<%- include('../partials/head') %>
+<div class="rad-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="rad-main">
+    <%- include('../partials/topbar', { crumb: 'Deliver', heading: 'Digest & Notification Settings', scanReturnTo: 'settings/digest' }) %>
+    <div class="rad-content">
+      <%- include('../partials/flash') %>
+
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <div class="rad-card mb-3">
+            <div class="rad-card-head">
+              <h2><i class="fa-solid fa-envelope-open-text me-2 text-muted-2"></i>Digest subscriptions</h2>
+              <div class="rad-card-head-actions">
+                <% if (can('digest.manage')) { %>
+                  <form method="post" action="<%= u('settings/digest/send') %>" data-busy="Sending…">
+                    <button class="btn btn-ghost btn-sm" type="submit"><i class="fa-solid fa-paper-plane"></i>Send digest now</button>
+                  </form>
+                <% } %>
+              </div>
+            </div>
+            <div class="rad-card-body">
+              <% if (!subscriptions.length) { %>
+                <div class="rad-empty" style="padding:30px 20px;"><i class="fa-solid fa-envelope"></i><strong>No subscriptions yet</strong>Add one on the right to start receiving digests.</div>
+              <% } %>
+
+              <% subscriptions.forEach(function (s) { %>
+                <div class="rad-sub-card">
+                  <div class="rad-sub-head">
+                    <i class="fa-solid <%= s.enabled ? 'fa-circle-check text-success' : 'fa-circle-pause text-muted-2' %>"></i>
+                    <span class="sh-mail"><%= s.recipient_email %></span>
+                    <% if (s.recipient_name) { %><span class="text-muted-2" style="font-size:12px;">(<%= s.recipient_name %>)</span><% } %>
+                    <span class="rad-badge st-new"><%= s.frequency %> @ <%= s.send_time %> <%= s.timezone %></span>
+                    <% if (s.instant_alerts) { %><span class="rad-badge sev-high"><i class="fa-solid fa-bell"></i>Instant alerts</span><% } %>
+                    <span class="ms-auto d-flex gap-1">
+                      <% if (can('digest.manage')) { %>
+                        <button class="btn btn-ghost btn-xs" type="button" data-toggle-target="sub-<%= s.id %>"><i class="fa-solid fa-pen"></i>Edit</button>
+                        <form class="rad-inline-form" method="post" action="<%= u('settings/digest/' + s.id + '/delete') %>" data-confirm="Delete the digest subscription for <%= s.recipient_email %>?">
+                          <button class="btn btn-ghost btn-xs" type="submit"><i class="fa-solid fa-trash"></i></button>
+                        </form>
+                      <% } %>
+                    </span>
+                  </div>
+                  <div class="rad-sub-body">
+                    <dl class="rad-dl" style="grid-template-columns:150px 1fr;">
+                      <dt>Minimum confidence</dt><dd><%= s.min_confidence %>/100</dd>
+                      <dt>Categories</dt>
+                      <dd><% s.categories.forEach(function (c) { %><span class="rad-tag"><%= f.signalLabel(c) %></span><% }); %></dd>
+                      <dt>Competitors</dt>
+                      <dd><% if (!s.competitorIds.length) { %>All competitors<% } else { %>
+                        <% s.competitorIds.forEach(function (id) { var c = competitorOptions.find(function (x) { return x.id === id; }); %>
+                          <span class="rad-tag"><%= c ? c.name : '#' + id %></span>
+                        <% }); } %></dd>
+                      <dt>Raw items included</dt><dd><%= s.include_raw_items ? 'Yes' : 'No' %></dd>
+                      <dt>Last sent</dt><dd><%= s.last_sent_at ? f.fmtDateTime(s.last_sent_at) : 'Never' %></dd>
+                    </dl>
+
+                    <% if (can('digest.manage')) { %>
+                      <div id="sub-<%= s.id %>" hidden>
+                        <hr class="rad-hr">
+                        <form method="post" action="<%= u('settings/digest/' + s.id) %>">
+                          <div class="row g-2 mb-2">
+                            <div class="col-md-5">
+                              <label class="form-label">Recipient email</label>
+                              <input class="form-control form-control-sm" type="email" name="recipient_email" value="<%= s.recipient_email %>" required>
+                            </div>
+                            <div class="col-md-4">
+                              <label class="form-label">Recipient name</label>
+                              <input class="form-control form-control-sm" name="recipient_name" value="<%= s.recipient_name || '' %>">
+                            </div>
+                            <div class="col-md-3">
+                              <label class="form-label">Frequency</label>
+                              <select class="form-select form-select-sm" name="frequency">
+                                <option value="daily" <%= s.frequency === 'daily' ? 'selected' : '' %>>Daily</option>
+                                <option value="weekly" <%= s.frequency === 'weekly' ? 'selected' : '' %>>Weekly</option>
+                              </select>
+                            </div>
+                            <div class="col-md-3">
+                              <label class="form-label">Send time</label>
+                              <input class="form-control form-control-sm" type="time" name="send_time" value="<%= s.send_time %>">
+                            </div>
+                            <div class="col-md-3">
+                              <label class="form-label">Timezone</label>
+                              <input class="form-control form-control-sm" name="timezone" value="<%= s.timezone %>">
+                            </div>
+                            <div class="col-md-3">
+                              <label class="form-label">Min confidence</label>
+                              <input class="form-control form-control-sm" type="number" min="0" max="100" name="min_confidence" value="<%= s.min_confidence %>">
+                            </div>
+                            <div class="col-md-3">
+                              <label class="form-label">Competitors</label>
+                              <select class="form-select form-select-sm" name="competitorIds" multiple size="3">
+                                <% competitorOptions.forEach(function (c) { %>
+                                  <option value="<%= c.id %>" <%= s.competitorIds.indexOf(c.id) >= 0 ? 'selected' : '' %>><%= c.name %></option>
+                                <% }); %>
+                              </select>
+                              <div class="form-text">Empty = all.</div>
+                            </div>
+                          </div>
+                          <label class="form-label">Categories</label>
+                          <div class="rad-cat-grid mb-2" id="cats-<%= s.id %>">
+                            <% categories.forEach(function (cat) { %>
+                              <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="c<%= s.id %>-<%= cat %>" name="categories" value="<%= cat %>" <%= s.categories.indexOf(cat) >= 0 ? 'checked' : '' %>>
+                                <label class="form-check-label" for="c<%= s.id %>-<%= cat %>"><%= f.signalLabel(cat) %></label>
+                              </div>
+                            <% }); %>
+                          </div>
+                          <div class="d-flex gap-3 align-items-center flex-wrap">
+                            <button class="btn btn-ghost btn-xs" type="button" data-check-all="#cats-<%= s.id %>">Toggle all</button>
+                            <div class="form-check mb-0">
+                              <input class="form-check-input" type="checkbox" id="raw-<%= s.id %>" name="include_raw_items" value="on" <%= s.include_raw_items ? 'checked' : '' %>>
+                              <label class="form-check-label" for="raw-<%= s.id %>">Include raw items</label>
+                            </div>
+                            <div class="form-check mb-0">
+                              <input class="form-check-input" type="checkbox" id="alert-<%= s.id %>" name="instant_alerts" value="on" <%= s.instant_alerts ? 'checked' : '' %>>
+                              <label class="form-check-label" for="alert-<%= s.id %>">Instant alerts</label>
+                            </div>
+                            <div class="form-check mb-0">
+                              <input class="form-check-input" type="checkbox" id="en-sub-<%= s.id %>" name="enabled" value="on" <%= s.enabled ? 'checked' : '' %>>
+                              <label class="form-check-label" for="en-sub-<%= s.id %>">Enabled</label>
+                            </div>
+                            <button class="btn btn-rad btn-sm ms-auto" type="submit"><i class="fa-solid fa-floppy-disk"></i>Save</button>
+                          </div>
+                        </form>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+
+          <div class="rad-card">
+            <div class="rad-card-head"><h2><i class="fa-solid fa-clock-rotate-left me-2 text-muted-2"></i>Notification log</h2></div>
+            <div class="rad-card-body tight">
+              <div class="rad-table-wrap rad-scroll-y">
+                <table class="rad-table">
+                  <thead><tr><th>Recipient</th><th>Type</th><th>Subject</th><th class="num">Signals</th><th>Status</th><th class="nowrap">Sent</th></tr></thead>
+                  <tbody>
+                    <% if (!logs.length) { %><tr><td colspan="6" class="text-muted-2">No notifications sent yet.</td></tr><% } %>
+                    <% logs.forEach(function (l) { %>
+                      <tr>
+                        <td class="nowrap"><%= l.recipient %></td>
+                        <td class="rad-td-sub nowrap"><%= f.titleCase(l.notification_type) %></td>
+                        <td class="rad-td-sub"><%= f.truncate(l.subject || '', 60) %></td>
+                        <td class="num"><%= l.signal_count %></td>
+                        <td>
+                          <span class="rad-badge <%= l.status === 'sent' ? 'st-confirmed' : (l.status === 'failed' ? 'sev-critical' : (l.status === 'skipped' ? 'st-dismissed' : 'sev-medium')) %>">
+                            <%= l.status === 'logged_only' ? 'logged (no SMTP)' : l.status %>
+                          </span>
+                        </td>
+                        <td class="nowrap rad-td-sub"><%= f.fmtDateTime(l.sent_at) %></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <% if (can('digest.manage')) { %>
+            <div class="rad-card mb-3">
+              <div class="rad-card-head"><h2>New subscription</h2></div>
+              <div class="rad-card-body">
+                <form method="post" action="<%= u('settings/digest') %>">
+                  <div class="mb-3">
+                    <label class="form-label" for="recipient_email">Recipient email *</label>
+                    <input class="form-control" id="recipient_email" name="recipient_email" type="email" required placeholder="analyst@company.com">
+                  </div>
+                  <div class="row g-2 mb-3">
+                    <div class="col-7">
+                      <label class="form-label" for="recipient_name">Name</label>
+                      <input class="form-control" id="recipient_name" name="recipient_name" placeholder="Jane Doe">
+                    </div>
+                    <div class="col-5">
+                      <label class="form-label" for="user_id">Link to user</label>
+                      <select class="form-select" id="user_id" name="user_id">
+                        <option value="">—</option>
+                        <% userOptions.forEach(function (usr) { %><option value="<%= usr.id %>"><%= usr.full_name %></option><% }); %>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="row g-2 mb-3">
+                    <div class="col-4">
+                      <label class="form-label" for="frequency">Frequency</label>
+                      <select class="form-select" id="frequency" name="frequency">
+                        <option value="daily">Daily</option><option value="weekly">Weekly</option>
+                      </select>
+                    </div>
+                    <div class="col-4">
+                      <label class="form-label" for="send_time">Send time</label>
+                      <input class="form-control" id="send_time" name="send_time" type="time" value="07:15">
+                    </div>
+                    <div class="col-4">
+                      <label class="form-label" for="min_confidence">Min conf.</label>
+                      <input class="form-control" id="min_confidence" name="min_confidence" type="number" min="0" max="100" value="50">
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label" for="timezone">Timezone</label>
+                    <input class="form-control" id="timezone" name="timezone" value="UTC">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Categories to include</label>
+                    <div class="rad-cat-grid" id="cats-new">
+                      <% categories.forEach(function (cat) { %>
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="cn-<%= cat %>" name="categories" value="<%= cat %>" checked>
+                          <label class="form-check-label" for="cn-<%= cat %>"><%= f.signalLabel(cat) %></label>
+                        </div>
+                      <% }); %>
+                    </div>
+                    <button class="btn btn-ghost btn-xs mt-2" type="button" data-check-all="#cats-new">Toggle all</button>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label" for="competitorIds">Limit to competitors</label>
+                    <select class="form-select" id="competitorIds" name="competitorIds" multiple size="5">
+                      <% competitorOptions.forEach(function (c) { %><option value="<%= c.id %>"><%= c.name %></option><% }); %>
+                    </select>
+                    <div class="form-text">Leave empty to include every competitor.</div>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="include_raw_items" name="include_raw_items" value="on">
+                    <label class="form-check-label" for="include_raw_items">Include raw collected items</label>
+                  </div>
+                  <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="instant_alerts" name="instant_alerts" value="on" checked>
+                    <label class="form-check-label" for="instant_alerts">Send instant alerts for high-impact signals</label>
+                  </div>
+                  <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="enabled" name="enabled" value="on" checked>
+                    <label class="form-check-label" for="enabled">Enabled</label>
+                  </div>
+                  <button class="btn btn-rad w-100" type="submit"><i class="fa-solid fa-plus"></i>Create subscription</button>
+                </form>
+              </div>
+            </div>
+          <% } %>
+
+          <div class="rad-card">
+            <div class="rad-card-head"><h2>Delivery configuration</h2></div>
+            <div class="rad-card-body">
+              <p class="text-muted-2" style="font-size:12.5px;">
+                Digest sending is driven by the <span class="rad-mono">DIGEST_CRON</span> schedule and SMTP settings in
+                <span class="rad-mono">.env</span>. When no SMTP host is configured, digests are still generated and
+                recorded in the notification log with status <strong>logged (no SMTP)</strong> — so the delivery path is
+                fully verifiable without a mail server.
+              </p>
+              <dl class="rad-dl" style="grid-template-columns:150px 1fr;">
+                <dt>Instant alert rule</dt><dd>impact ≥ 80 <strong>and</strong> confidence ≥ 70</dd>
+                <dt>Daily scan</dt><dd><span class="rad-mono">DAILY_SCAN_CRON</span></dd>
+                <dt>Digest job</dt><dd><span class="rad-mono">DIGEST_CRON</span></dd>
+                <dt>Retry job</dt><dd><span class="rad-mono">RETRY_FAILED_CRON</span></dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

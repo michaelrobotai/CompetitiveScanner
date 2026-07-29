@@ -1,0 +1,90 @@
+<%- include('../partials/head') %>
+<div class="rad-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="rad-main">
+    <%- include('../partials/topbar', { crumb: 'Administration', heading: 'Sources & Integrations', scanReturnTo: 'settings/sources' }) %>
+    <div class="rad-content">
+      <%- include('../partials/flash') %>
+
+      <div class="rad-flash info">
+        <i class="fa-solid fa-circle-info"></i>
+        <div>
+          Each collector is a pluggable source adapter. Credentials come from environment variables
+          (see <span class="rad-mono">.env.example</span>) — a connector without its key reports
+          <strong>not configured</strong> on every scan run instead of failing the run.
+          In demo mode those adapters additionally emit realistic simulated items so the pipeline stays demonstrable.
+          Robots.txt and rate-limit responses are always recorded on the run, never silently dropped.
+        </div>
+      </div>
+
+      <div class="rad-connector-grid">
+        <% connectors.forEach(function (c) { %>
+          <div class="rad-connector">
+            <div class="rad-connector-head">
+              <span class="rc-icon"><i class="fa-solid <%= c.connector_key === 'website_page' ? 'fa-globe' : (c.connector_key === 'blog_rss' ? 'fa-rss' : (c.connector_key.indexOf('linkedin') === 0 ? 'fa-briefcase' : (c.connector_key === 'news_search' ? 'fa-newspaper' : (c.connector_key === 'job_board' ? 'fa-user-tie' : (c.connector_key === 'funding_db' ? 'fa-sack-dollar' : (c.connector_key === 'sec_filing' ? 'fa-file-contract' : (c.connector_key === 'review_site' ? 'fa-star-half-stroke' : 'fa-hashtag'))))))) %>"></i></span>
+              <div class="flex-grow-1">
+                <h3><%= c.name %></h3>
+                <div class="rc-cat"><%= c.category %> · <span class="rad-mono"><%= c.connector_key %></span></div>
+              </div>
+              <span class="rad-badge <%= c.status === 'configured' ? 'st-confirmed' : (c.status === 'disabled' ? 'st-dismissed' : (c.status === 'error' ? 'sev-critical' : 'sev-medium')) %>">
+                <%= f.titleCase(c.status) %>
+              </span>
+            </div>
+            <div class="rad-connector-body">
+              <%= c.description %>
+              <div class="mt-2 d-flex gap-2 flex-wrap">
+                <span class="rad-chip"><i class="fa-solid fa-key"></i><%= c.auth_type %></span>
+                <% if (c.env_key) { %>
+                  <span class="rad-chip"><i class="fa-solid <%= c.envConfigured ? 'fa-circle-check' : 'fa-circle-xmark' %>"></i><span class="rad-mono"><%= c.env_key %></span></span>
+                <% } else { %>
+                  <span class="rad-chip"><i class="fa-solid fa-unlock"></i>No credentials required</span>
+                <% } %>
+                <span class="rad-chip"><i class="fa-solid fa-robot"></i>robots: <%= c.respects_robots ? 'respected' : 'ignored' %></span>
+              </div>
+              <% if (c.last_error) { %>
+                <div class="rad-flash danger mt-2" style="margin-bottom:0;"><i class="fa-solid fa-circle-exclamation"></i><div><%= f.truncate(c.last_error, 160) %></div></div>
+              <% } %>
+            </div>
+            <div class="rad-connector-stats">
+              <div><b><%= c.usage.sources || 0 %></b><span>Sources</span></div>
+              <div><b class="text-success"><%= c.usage.ok_sources || 0 %></b><span>Healthy</span></div>
+              <div><b class="text-danger"><%= c.usage.failing_sources || 0 %></b><span>Failing</span></div>
+              <div><b><%= c.itemCount %></b><span>Items</span></div>
+            </div>
+            <div class="rad-connector-form">
+              <form method="post" action="<%= u('settings/sources/' + c.connector_key) %>" class="row g-2 align-items-end">
+                <div class="col-4">
+                  <label class="form-label">Status</label>
+                  <select class="form-select form-select-sm" name="status">
+                    <% ['configured','not_configured','error','disabled'].forEach(function (s) { %>
+                      <option value="<%= s %>" <%= c.status === s ? 'selected' : '' %>><%= f.titleCase(s) %></option>
+                    <% }); %>
+                  </select>
+                </div>
+                <div class="col-3">
+                  <label class="form-label">Credibility</label>
+                  <input class="form-control form-control-sm" type="number" min="0" max="100" name="credibility_weight" value="<%= c.credibility_weight %>">
+                </div>
+                <div class="col-3">
+                  <label class="form-label">Rate / hr</label>
+                  <input class="form-control form-control-sm" type="number" min="1" name="rate_limit_per_hour" value="<%= c.rate_limit_per_hour %>">
+                </div>
+                <div class="col-2">
+                  <button class="btn btn-rad btn-sm w-100" type="submit"><i class="fa-solid fa-check"></i></button>
+                </div>
+                <div class="col-12">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="rb-<%= c.connector_key %>" name="respects_robots" value="on" <%= c.respects_robots ? 'checked' : '' %>>
+                    <label class="form-check-label" for="rb-<%= c.connector_key %>">Respect robots.txt</label>
+                  </div>
+                  <div class="form-text">Last checked <%= c.last_checked_at ? f.timeAgo(c.last_checked_at) : 'never' %>. Credibility feeds 40% of the signal confidence score.</div>
+                </div>
+              </form>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

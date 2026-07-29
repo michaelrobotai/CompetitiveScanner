@@ -1,0 +1,32 @@
+<% if (pager && pager.total > 0) { %>
+  <div class="rad-pager">
+    <span>Showing <strong><%= pager.firstRow %></strong>–<strong><%= pager.lastRow %></strong> of <strong><%= pager.total %></strong></span>
+    <form method="get" class="d-flex align-items-center gap-2" data-autosubmit>
+      <% Object.keys(filters || {}).forEach(function (k) { if (k !== 'perPage' && k !== 'page' && filters[k]) { %>
+        <input type="hidden" name="<%= k %>" value="<%= filters[k] %>">
+      <% } }); %>
+      <label class="form-label mb-0 text-muted-2" style="font-size:11px;">Rows</label>
+      <select class="form-select form-select-sm" name="perPage" style="width:auto;">
+        <% [10, 25, 50, 100].forEach(function (n) { %>
+          <option value="<%= n %>" <%= Number(pager.perPage) === n ? 'selected' : '' %>><%= n %></option>
+        <% }); %>
+      </select>
+    </form>
+    <div class="rad-pager-links">
+      <% if (pager.hasPrev) { %>
+        <a href="?<%= qs(filters, { page: pager.page - 1 }) %>"><i class="fa-solid fa-chevron-left"></i></a>
+      <% } else { %><span class="disabled"><i class="fa-solid fa-chevron-left"></i></span><% } %>
+      <% if (pager.window[0] > 1) { %><a href="?<%= qs(filters, { page: 1 }) %>">1</a><span class="disabled">…</span><% } %>
+      <% pager.window.forEach(function (p) { %>
+        <% if (p === pager.page) { %><span class="current"><%= p %></span>
+        <% } else { %><a href="?<%= qs(filters, { page: p }) %>"><%= p %></a><% } %>
+      <% }); %>
+      <% if (pager.window[pager.window.length - 1] < pager.pages) { %>
+        <span class="disabled">…</span><a href="?<%= qs(filters, { page: pager.pages }) %>"><%= pager.pages %></a>
+      <% } %>
+      <% if (pager.hasNext) { %>
+        <a href="?<%= qs(filters, { page: pager.page + 1 }) %>"><i class="fa-solid fa-chevron-right"></i></a>
+      <% } else { %><span class="disabled"><i class="fa-solid fa-chevron-right"></i></span><% } %>
+    </div>
+  </div>
+<% } %>

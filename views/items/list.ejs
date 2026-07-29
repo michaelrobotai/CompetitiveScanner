@@ -1,0 +1,128 @@
+<%- include('../partials/head') %>
+<div class="rad-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="rad-main">
+    <%- include('../partials/topbar', { crumb: 'Collection', heading: 'Raw Updates / Collected Items', scanReturnTo: 'items' }) %>
+    <div class="rad-content">
+      <%- include('../partials/flash') %>
+
+      <form class="rad-filters" method="get" data-autosubmit>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">Search</label>
+            <input class="form-control form-control-sm" type="search" name="q" value="<%= filters.q || '' %>" placeholder="Title or excerpt…">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Competitor</label>
+            <select class="form-select form-select-sm" name="competitorId">
+              <option value="">All</option>
+              <% competitorOptions.forEach(function (c) { %>
+                <option value="<%= c.id %>" <%= String(filters.competitorId) === String(c.id) ? 'selected' : '' %>><%= c.name %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Collector</label>
+            <select class="form-select form-select-sm" name="connector">
+              <option value="">All</option>
+              <% data.connectors.forEach(function (c) { %>
+                <option value="<%= c %>" <%= filters.connector === c ? 'selected' : '' %>><%= c %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Processing</label>
+            <select class="form-select form-select-sm" name="status">
+              <option value="">Any</option>
+              <% ['pending','analysed','ignored','error'].forEach(function (s) { %>
+                <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= f.titleCase(s) %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <label class="form-label">Change</label>
+            <select class="form-select form-select-sm" name="changeType">
+              <option value="">Any</option>
+              <% ['new','changed','unchanged'].forEach(function (s) { %>
+                <option value="<%= s %>" <%= filters.changeType === s ? 'selected' : '' %>><%= s %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <label class="form-label">From</label>
+            <input class="form-control form-control-sm" type="date" name="from" value="<%= filters.from || '' %>">
+          </div>
+          <div class="col-md-1">
+            <label class="form-label">To</label>
+            <input class="form-control form-control-sm" type="date" name="to" value="<%= filters.to || '' %>">
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-2 align-items-center">
+          <button class="btn btn-rad btn-sm" type="submit"><i class="fa-solid fa-filter"></i>Apply</button>
+          <a class="btn btn-ghost btn-sm" href="<%= u('items') %>"><i class="fa-solid fa-rotate-left"></i>Reset</a>
+          <div class="form-check ms-3 mb-0">
+            <input class="form-check-input" type="checkbox" id="onlyMock" name="onlyMock" value="1" <%= filters.onlyMock === '1' ? 'checked' : '' %>>
+            <label class="form-check-label" for="onlyMock">Only simulated (demo-mode) items</label>
+          </div>
+        </div>
+      </form>
+
+      <div class="rad-card">
+        <div class="rad-card-head">
+          <h2>Collected items</h2>
+          <span class="rad-sub"><%= data.pager.total %> total</span>
+        </div>
+        <div class="rad-card-body tight">
+          <% if (!data.rows.length) { %>
+            <div class="rad-empty">
+              <i class="fa-solid fa-inbox"></i>
+              <strong>No collected items match your filters</strong>
+              Trigger a scan run to gather items from the configured sources.
+            </div>
+          <% } else { %>
+            <div class="rad-table-wrap">
+              <table class="rad-table">
+                <thead>
+                  <tr>
+                    <th><a href="?<%= qs(filters, { sort: 'competitor', dir: data.sort === 'competitor' && data.dir === 'asc' ? 'desc' : 'asc' }) %>">Competitor <i class="fa-solid fa-sort"></i></a></th>
+                    <th>Item</th>
+                    <th><a href="?<%= qs(filters, { sort: 'connector', dir: data.sort === 'connector' && data.dir === 'asc' ? 'desc' : 'asc' }) %>">Collector <i class="fa-solid fa-sort"></i></a></th>
+                    <th>Change</th>
+                    <th class="num"><a href="?<%= qs(filters, { sort: 'credibility', dir: data.sort === 'credibility' && data.dir === 'asc' ? 'desc' : 'asc' }) %>">Cred. <i class="fa-solid fa-sort"></i></a></th>
+                    <th>Processing</th>
+                    <th class="num">Signals</th>
+                    <th class="nowrap"><a href="?<%= qs(filters, { sort: 'captured_at', dir: data.sort === 'captured_at' && data.dir === 'asc' ? 'desc' : 'asc' }) %>">Captured <i class="fa-solid fa-sort"></i></a></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% data.rows.forEach(function (it) { %>
+                    <tr>
+                      <td class="nowrap"><a href="<%= u('competitors/' + it.competitor_id) %>"><%= it.competitor_name %></a></td>
+                      <td>
+                        <a class="rad-td-title" href="<%= u('items/' + it.id) %>"><%= f.truncate(it.title, 76) %></a>
+                        <div class="rad-td-sub">
+                          <%= it.source_label || it.source_type %>
+                          <% if (it.is_mock) { %> · <span class="rad-mock-flag"><i class="fa-solid fa-flask"></i> simulated</span><% } %>
+                        </div>
+                      </td>
+                      <td class="nowrap rad-td-sub"><%= it.connector_key %></td>
+                      <td><span class="rad-badge <%= it.change_type === 'changed' ? 'sev-medium' : (it.change_type === 'new' ? 'st-new' : 'st-dismissed') %>"><%= it.change_type %></span></td>
+                      <td class="num"><%= it.credibility %></td>
+                      <td><span class="rad-badge <%= it.processing_status === 'analysed' ? 'st-confirmed' : (it.processing_status === 'pending' ? 'st-new' : (it.processing_status === 'error' ? 'sev-critical' : 'st-dismissed')) %>"><%= it.processing_status %></span></td>
+                      <td class="num"><%= it.signal_links %></td>
+                      <td class="nowrap rad-td-sub" title="<%= f.fmtDateTime(it.captured_at) %>"><%= f.timeAgo(it.captured_at) %></td>
+                      <td class="nowrap"><a class="btn btn-ghost btn-xs" href="<%= u('items/' + it.id) %>"><i class="fa-solid fa-arrow-right"></i></a></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+        <%- include('../partials/pager', { pager: data.pager, filters: filters }) %>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

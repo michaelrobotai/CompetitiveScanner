@@ -1,0 +1,6 @@
+<% if (typeof flash !== 'undefined' && flash) { %>
+  <div class="rad-flash <%= /fail|error|cannot|already in progress|invalid/i.test(flash) ? 'warn' : '' %>" data-autohide>
+    <i class="fa-solid <%= /fail|error|cannot|already in progress|invalid/i.test(flash) ? 'fa-triangle-exclamation' : 'fa-circle-check' %>"></i>
+    <div><%= flash %></div>
+  </div>
+<% } %>

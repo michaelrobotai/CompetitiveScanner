@@ -1,0 +1,114 @@
+version: "3.8"
+services:
+  db:
+    image: mysql:8.0.36
+    container_name: competitive-radar-db
+    ports:
+      - 3306:3306
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      TZ: ${TZ}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        - CMD
+        - mysqladmin
+        - ping
+        - -h
+        - localhost
+        - -u
+        - root
+        - -p${DB_ROOT_PASSWORD}
+      retries: 10
+      timeout: 5s
+      interval: 10s
+      start_period: 30s
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: competitive-radar-server
+    ports:
+      - 3000:3000
+    volumes:
+      - ./public:/app/public
+      - ./views:/app/views
+      - app_uploads:/app/uploads
+      - app_reports:/app/reports
+      - app_logs:/app/logs
+    environment:
+      TZ: ${TZ}
+      PORT: "3000"
+      DB_HOST: db
+      DB_NAME: ${DB_NAME}
+      DB_PORT: "3306"
+      DB_USER: ${DB_USER}
+      NODE_ENV: production
+      REDIS_URL: redis://cache:6379
+      SCAN_CRON: ${SCAN_CRON}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      JWT_SECRET: ${JWT_SECRET}
+      DB_PASSWORD: ${DB_PASSWORD}
+      APP_BASE_URL: ${APP_BASE_URL}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      SESSION_SECRET: ${SESSION_SECRET}
+      DIGEST_FROM_EMAIL: ${DIGEST_FROM_EMAIL}
+      SCAN_RATE_LIMIT_PER_MIN: ${SCAN_RATE_LIMIT_PER_MIN}
+    depends_on:
+      - db
+      - cache
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:3000/health
+      retries: 3
+      timeout: 10s
+      interval: 30s
+      start_period: 40s
+    working_dir: /app
+  cache:
+    image: redis:7.2-alpine
+    container_name: competitive-radar-cache
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      retries: 5
+      timeout: 5s
+      interval: 10s
+volumes:
+  db_data: {}
+  app_logs: {}
+  redis_data: {}
+  app_reports: {}
+  app_uploads: {}
+networks:
+  app-network:
+    driver: bridge

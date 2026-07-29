@@ -1,0 +1,73 @@
+<aside class="rad-sidebar">
+  <a class="rad-brand" href="<%= u('dashboard') %>">
+    <span class="rad-brand-mark"><i class="fa-solid fa-satellite-dish"></i></span>
+    <span class="rad-brand-text">
+      <strong>Competitive Radar</strong>
+      <span>Signal intelligence</span>
+    </span>
+  </a>
+
+  <nav class="rad-nav">
+    <div class="rad-nav-label">Monitor</div>
+    <a class="rad-nav-link <%= active === 'dashboard' ? 'active' : '' %>" href="<%= u('dashboard') %>">
+      <i class="fa-solid fa-gauge-high"></i> Radar Home
+    </a>
+    <a class="rad-nav-link <%= active === 'signals' ? 'active' : '' %>" href="<%= u('signals') %>">
+      <i class="fa-solid fa-tower-broadcast"></i> Signals Feed
+      <% if (typeof navCounts !== 'undefined' && navCounts && navCounts.newSignals > 0) { %>
+        <span class="rad-pill pill-red"><%= navCounts.newSignals %></span>
+      <% } %>
+    </a>
+    <a class="rad-nav-link <%= active === 'competitors' ? 'active' : '' %>" href="<%= u('competitors') %>">
+      <i class="fa-solid fa-building-columns"></i> Competitors
+    </a>
+
+    <div class="rad-nav-label">Collection</div>
+    <a class="rad-nav-link <%= active === 'items' ? 'active' : '' %>" href="<%= u('items') %>">
+      <i class="fa-solid fa-inbox"></i> Raw Updates
+    </a>
+    <a class="rad-nav-link <%= active === 'runs' ? 'active' : '' %>" href="<%= u('runs') %>">
+      <i class="fa-solid fa-clock-rotate-left"></i> Run History
+    </a>
+
+    <div class="rad-nav-label">Deliver</div>
+    <a class="rad-nav-link <%= active === 'reports' ? 'active' : '' %>" href="<%= u('reports') %>">
+      <i class="fa-solid fa-chart-column"></i> Reports
+    </a>
+    <a class="rad-nav-link <%= active === 'digest' ? 'active' : '' %>" href="<%= u('settings/digest') %>">
+      <i class="fa-solid fa-envelope-open-text"></i> Digest Settings
+    </a>
+
+    <% if (can('connectors.manage') || can('users.manage') || can('audit.view')) { %>
+      <div class="rad-nav-label">Administration</div>
+      <% if (can('connectors.manage')) { %>
+        <a class="rad-nav-link <%= active === 'sources' ? 'active' : '' %>" href="<%= u('settings/sources') %>">
+          <i class="fa-solid fa-plug"></i> Sources &amp; Integrations
+        </a>
+      <% } %>
+      <% if (can('users.manage')) { %>
+        <a class="rad-nav-link <%= active === 'users' ? 'active' : '' %>" href="<%= u('settings/users') %>">
+          <i class="fa-solid fa-users-gear"></i> Users &amp; Roles
+        </a>
+      <% } %>
+      <% if (can('audit.view')) { %>
+        <a class="rad-nav-link <%= active === 'audit' ? 'active' : '' %>" href="<%= u('settings/audit') %>">
+          <i class="fa-solid fa-shield-halved"></i> Audit Log
+        </a>
+      <% } %>
+    <% } %>
+  </nav>
+
+  <div class="rad-sidebar-foot">
+    <div class="rad-user">
+      <span class="rad-avatar"><%= (currentUser.fullName || '?').split(' ').map(function(p){return p.charAt(0);}).join('').slice(0,2).toUpperCase() %></span>
+      <span class="rad-user-meta">
+        <strong><%= currentUser.fullName %></strong>
+        <span><%= currentUser.role %></span>
+      </span>
+      <form action="<%= u('logout') %>" method="post" class="ms-auto">
+        <button class="btn btn-ghost btn-xs" type="submit" title="Sign out"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+      </form>
+    </div>
+  </div>
+</aside>

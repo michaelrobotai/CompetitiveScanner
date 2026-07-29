@@ -1,0 +1,138 @@
+<%- include('../partials/head') %>
+<div class="rad-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="rad-main">
+    <%- include('../partials/topbar', { crumb: 'Run History', heading: 'Scan run #' + run.id, scanReturnTo: 'runs/' + run.id }) %>
+    <div class="rad-content">
+      <div class="rad-run-summary mb-3">
+        <div><b><%= f.titleCase(run.status) %></b><span>Status</span></div>
+        <div><b><%= f.titleCase(run.run_type) %></b><span>Type</span></div>
+        <div><b><%= run.competitors_scanned %></b><span>Competitors</span></div>
+        <div><b><%= run.sources_total %></b><span>Sources</span></div>
+        <div><b class="text-success"><%= run.sources_ok %></b><span>OK</span></div>
+        <div><b class="text-danger"><%= run.sources_failed %></b><span>Failed</span></div>
+        <div><b><%= run.sources_not_configured %></b><span>Not config.</span></div>
+        <div><b><%= run.sources_skipped %></b><span>Skipped</span></div>
+        <div><b><%= run.items_collected %></b><span>Items</span></div>
+        <div><b><%= run.signals_created %></b><span>New signals</span></div>
+        <div><b><%= run.signals_merged %></b><span>Merged</span></div>
+        <div><b><%= f.fmtDuration(run.duration_ms) %></b><span>Duration</span></div>
+      </div>
+
+      <% if (run.error_summary) { %>
+        <div class="rad-flash danger">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div>
+            <strong>Errors captured during this run</strong>
+            <pre class="rad-pre rad-diff mt-2" style="white-space:pre-wrap;"><%= run.error_summary %></pre>
+          </div>
+        </div>
+      <% } %>
+
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2><i class="fa-solid fa-list-check me-2 text-muted-2"></i>Per-source results</h2><span class="rad-sub"><%= results.length %> source checks</span></div>
+            <div class="rad-card-body tight">
+              <% if (!results.length) { %>
+                <div class="rad-empty"><i class="fa-solid fa-list-check"></i><strong>No per-source detail recorded</strong>This run may have failed before collecting.</div>
+              <% } else { %>
+                <div class="rad-table-wrap">
+                  <table class="rad-table">
+                    <thead><tr><th>Competitor</th><th>Source</th><th>Collector</th><th>Status</th><th class="num">Items</th><th class="num">Time</th><th>Note / error</th></tr></thead>
+                    <tbody>
+                      <% results.forEach(function (r) { %>
+                        <tr>
+                          <td class="nowrap rad-td-sub"><a href="<%= u('competitors/' + r.competitorId) %>"><%= r.competitor %></a></td>
+                          <td class="rad-td-title" style="font-weight:550;"><%= r.source %></td>
+                          <td class="rad-mono rad-td-sub nowrap"><%= r.connector %></td>
+                          <td class="nowrap">
+                            <span class="rad-badge <%= (f.SOURCE_STATUS_META[r.status] || f.SOURCE_STATUS_META.never_run).badge %>">
+                              <i class="<%= (f.SOURCE_STATUS_META[r.status] || f.SOURCE_STATUS_META.never_run).icon %>"></i><%= (f.SOURCE_STATUS_META[r.status] || { label: r.status }).label %>
+                            </span>
+                          </td>
+                          <td class="num"><%= r.items %></td>
+                          <td class="num nowrap"><%= f.fmtDuration(r.durationMs) %></td>
+                          <td class="rad-td-sub"><%= r.error || r.note || '—' %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              <% } %>
+            </div>
+          </div>
+
+          <div class="rad-card">
+            <div class="rad-card-head"><h2><i class="fa-solid fa-inbox me-2 text-muted-2"></i>Items collected in this run</h2></div>
+            <div class="rad-card-body tight">
+              <% if (!items.length) { %>
+                <div class="rad-empty"><i class="fa-solid fa-inbox"></i><strong>No new items</strong>All sources returned unchanged content.</div>
+              <% } else { %>
+                <div class="rad-table-wrap rad-scroll-y">
+                  <table class="rad-table">
+                    <thead><tr><th>Competitor</th><th>Item</th><th>Collector</th><th>Status</th></tr></thead>
+                    <tbody>
+                      <% items.forEach(function (it) { %>
+                        <tr>
+                          <td class="nowrap rad-td-sub"><%= it.competitor_name %></td>
+                          <td>
+                            <a class="rad-td-title" href="<%= u('items/' + it.id) %>"><%= f.truncate(it.title, 70) %></a>
+                            <% if (it.is_mock) { %> <span class="rad-mock-flag"><i class="fa-solid fa-flask"></i></span><% } %>
+                          </td>
+                          <td class="rad-mono rad-td-sub nowrap"><%= it.connector_key %></td>
+                          <td><span class="rad-badge <%= it.processing_status === 'analysed' ? 'st-confirmed' : 'st-new' %>"><%= it.processing_status %></span></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2>Run metadata</h2></div>
+            <div class="rad-card-body">
+              <dl class="rad-dl" style="grid-template-columns:130px 1fr;">
+                <dt>Run ID</dt><dd class="rad-mono">#<%= run.id %></dd>
+                <dt>Type</dt><dd><%= f.titleCase(run.run_type) %></dd>
+                <dt>Status</dt><dd><span class="rad-badge <%= run.status === 'completed' ? 'st-confirmed' : (run.status === 'partial' ? 'sev-medium' : (run.status === 'failed' ? 'sev-critical' : 'st-new')) %>"><%= f.titleCase(run.status) %></span></dd>
+                <dt>Scope</dt><dd><%= run.competitor_name || 'All eligible competitors' %></dd>
+                <dt>Triggered by</dt><dd><%= run.triggered_by_name || 'Scheduler (cron)' %></dd>
+                <dt>Started</dt><dd><%= f.fmtDateTime(run.started_at) %></dd>
+                <dt>Finished</dt><dd><%= f.fmtDateTime(run.finished_at) %></dd>
+                <dt>Duration</dt><dd><%= f.fmtDuration(run.duration_ms) %></dd>
+              </dl>
+            </div>
+          </div>
+
+          <div class="rad-card">
+            <div class="rad-card-head"><h2><i class="fa-solid fa-tower-broadcast me-2 text-muted-2"></i>Signals from this run</h2></div>
+            <div class="rad-card-body tight">
+              <% if (!signals.length) { %>
+                <div class="rad-empty" style="padding:30px 20px;"><i class="fa-solid fa-tower-broadcast"></i><strong>No signals produced</strong>Collected items were below the confidence threshold.</div>
+              <% } else { %>
+                <div class="rad-table-wrap"><table class="rad-table"><tbody>
+                  <% signals.forEach(function (s) { %>
+                    <tr>
+                      <td>
+                        <a class="rad-td-title" href="<%= u('signals/' + s.id) %>"><%= f.truncate(s.title, 62) %></a>
+                        <div class="rad-td-sub"><%= s.competitor_name %> · <%= f.signalLabel(s.signal_type) %></div>
+                      </td>
+                      <td class="num"><%= s.confidence %></td>
+                      <td><span class="rad-badge <%= f.SEVERITY_META[s.severity].badge %>"><%= s.severity %></span></td>
+                    </tr>
+                  <% }); %>
+                </tbody></table></div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

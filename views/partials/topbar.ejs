@@ -1,0 +1,26 @@
+<header class="rad-topbar">
+  <button class="btn btn-ghost btn-sm rad-burger" data-rad-burger type="button"><i class="fa-solid fa-bars"></i></button>
+  <div>
+    <% if (typeof crumb !== 'undefined' && crumb) { %><div class="rad-crumb"><%= crumb %></div><% } %>
+    <h1><%= typeof heading !== 'undefined' && heading ? heading : title %></h1>
+  </div>
+  <div class="rad-topbar-actions">
+    <% if (demoMode) { %>
+      <span class="rad-chip" title="Unconfigured integrations produce realistic simulated items so the pipeline is demonstrable end to end.">
+        <i class="fa-solid fa-flask"></i> Demo mode
+      </span>
+    <% } %>
+    <% if (can('runs.trigger')) { %>
+      <form action="<%= u('runs/trigger') %>" method="post" data-busy="Scanning…" class="d-inline">
+        <input type="hidden" name="returnTo" value="<%= typeof scanReturnTo !== 'undefined' ? scanReturnTo : 'dashboard' %>">
+        <% if (typeof scanCompetitorId !== 'undefined' && scanCompetitorId) { %>
+          <input type="hidden" name="competitorId" value="<%= scanCompetitorId %>">
+        <% } %>
+        <button class="btn btn-rad btn-sm" type="submit">
+          <i class="fa-solid fa-bolt"></i><%= typeof scanCompetitorId !== 'undefined' && scanCompetitorId ? 'Scan this competitor' : 'Run scan now' %>
+        </button>
+      </form>
+    <% } %>
+    <% if (typeof extraActions !== 'undefined') { %><%- extraActions %><% } %>
+  </div>
+</header>

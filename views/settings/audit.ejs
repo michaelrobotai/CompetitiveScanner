@@ -1,0 +1,95 @@
+<%- include('../partials/head') %>
+<div class="rad-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="rad-main">
+    <%- include('../partials/topbar', { crumb: 'Administration', heading: 'Audit Log', scanReturnTo: 'settings/audit' }) %>
+    <div class="rad-content">
+      <form class="rad-filters" method="get" data-autosubmit>
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">Search</label>
+            <input class="form-control form-control-sm" type="search" name="q" value="<%= filters.q || '' %>" placeholder="Entity label or actor email…">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Action</label>
+            <select class="form-select form-select-sm" name="action">
+              <option value="">All</option>
+              <% data.actions.forEach(function (a) { %>
+                <option value="<%= a %>" <%= filters.action === a ? 'selected' : '' %>><%= a %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Entity type</label>
+            <select class="form-select form-select-sm" name="entityType">
+              <option value="">All</option>
+              <% data.entities.forEach(function (e) { %>
+                <option value="<%= e %>" <%= filters.entityType === e ? 'selected' : '' %>><%= e %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">From</label>
+            <input class="form-control form-control-sm" type="date" name="from" value="<%= filters.from || '' %>">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">To</label>
+            <input class="form-control form-control-sm" type="date" name="to" value="<%= filters.to || '' %>">
+          </div>
+          <div class="col-md-1">
+            <a class="btn btn-ghost btn-sm w-100" href="<%= u('settings/audit') %>"><i class="fa-solid fa-rotate-left"></i></a>
+          </div>
+        </div>
+      </form>
+
+      <div class="rad-card">
+        <div class="rad-card-head">
+          <h2><i class="fa-solid fa-shield-halved me-2 text-muted-2"></i>Audit trail</h2>
+          <span class="rad-sub"><%= data.pager.total %> entries — creates, updates, deletes, logins and manual run triggers</span>
+        </div>
+        <div class="rad-card-body tight">
+          <% if (!data.rows.length) { %>
+            <div class="rad-empty"><i class="fa-solid fa-shield-halved"></i><strong>No audit entries match your filters</strong>Every state-changing action is recorded here automatically.</div>
+          <% } else { %>
+            <div class="rad-table-wrap">
+              <table class="rad-table">
+                <thead>
+                  <tr>
+                    <th><a href="?<%= qs(filters, { sort: 'created_at', dir: data.sort === 'created_at' && data.dir === 'asc' ? 'desc' : 'asc' }) %>">When <i class="fa-solid fa-sort"></i></a></th>
+                    <th><a href="?<%= qs(filters, { sort: 'actor', dir: data.sort === 'actor' && data.dir === 'asc' ? 'desc' : 'asc' }) %>">Actor <i class="fa-solid fa-sort"></i></a></th>
+                    <th><a href="?<%= qs(filters, { sort: 'action', dir: data.sort === 'action' && data.dir === 'asc' ? 'desc' : 'asc' }) %>">Action <i class="fa-solid fa-sort"></i></a></th>
+                    <th><a href="?<%= qs(filters, { sort: 'entity', dir: data.sort === 'entity' && data.dir === 'asc' ? 'desc' : 'asc' }) %>">Entity <i class="fa-solid fa-sort"></i></a></th>
+                    <th>Details</th>
+                    <th class="nowrap">IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% data.rows.forEach(function (r) { %>
+                    <tr>
+                      <td class="nowrap rad-td-sub" title="<%= f.timeAgo(r.created_at) %>"><%= f.fmtDateTime(r.created_at) %></td>
+                      <td>
+                        <span class="rad-td-title"><%= r.actor_email || 'system' %></span>
+                        <div class="rad-td-sub"><%= r.actor_role || '—' %></div>
+                      </td>
+                      <td class="nowrap">
+                        <span class="rad-badge <%= /delete/.test(r.action) ? 'sev-critical' : (/create/.test(r.action) ? 'st-confirmed' : (/fail/.test(r.action) ? 'sev-high' : 'st-new')) %>"><%= r.action %></span>
+                      </td>
+                      <td>
+                        <span class="rad-mono"><%= r.entity_type %><%= r.entity_id ? '#' + r.entity_id : '' %></span>
+                        <div class="rad-td-sub"><%= f.truncate(r.entity_label || '', 52) %></div>
+                      </td>
+                      <td class="rad-td-sub rad-mono" style="max-width:420px;word-break:break-all;"><%= f.truncate(r.details_json || '—', 180) %></td>
+                      <td class="nowrap rad-td-sub"><%= r.ip_address || '—' %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+        <%- include('../partials/pager', { pager: data.pager, filters: filters }) %>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

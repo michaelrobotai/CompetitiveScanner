@@ -1,0 +1,224 @@
+<%- include('../partials/head') %>
+<div class="rad-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="rad-main">
+    <%- include('../partials/topbar', { crumb: 'Deliver', heading: 'Reports', scanReturnTo: 'reports' }) %>
+    <div class="rad-content">
+      <%- include('../partials/flash') %>
+
+      <form class="rad-filters" method="get">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Scope</label>
+            <select class="form-select form-select-sm" name="competitorId">
+              <option value="">Cross-competitor (all)</option>
+              <% competitorOptions.forEach(function (c) { %>
+                <option value="<%= c.id %>" <%= String(filters.competitorId) === String(c.id) ? 'selected' : '' %>><%= c.name %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">From</label>
+            <input class="form-control form-control-sm" type="date" name="from" value="<%= report.from %>">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">To</label>
+            <input class="form-control form-control-sm" type="date" name="to" value="<%= report.to %>">
+          </div>
+          <div class="col-md-4 d-flex gap-2">
+            <button class="btn btn-rad btn-sm" type="submit"><i class="fa-solid fa-chart-column"></i>Generate</button>
+            <a class="btn btn-ghost btn-sm" href="<%= u('reports/export') %>?<%= qs({ from: report.from, to: report.to, competitorId: report.competitorId || '' }) %>">
+              <i class="fa-solid fa-file-csv"></i>Export CSV
+            </a>
+            <% if (can('reports.generate')) { %>
+              <form method="post" action="<%= u('reports/save') %>" class="d-inline">
+                <input type="hidden" name="from" value="<%= report.from %>">
+                <input type="hidden" name="to" value="<%= report.to %>">
+                <input type="hidden" name="competitorId" value="<%= report.competitorId || '' %>">
+                <button class="btn btn-ghost btn-sm" type="submit"><i class="fa-solid fa-bookmark"></i>Save</button>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      </form>
+
+      <div class="rad-card mb-3">
+        <div class="rad-card-head">
+          <h2><%= report.competitor ? report.competitor.name + ' — competitor report' : 'Cross-competitor report' %></h2>
+          <span class="rad-sub"><%= f.fmtDate(report.from) %> → <%= f.fmtDate(report.to) %></span>
+        </div>
+        <div class="rad-card-body">
+          <div class="row g-3">
+            <div class="col-md-2 col-6"><div class="rad-kpi">
+              <div class="rad-kpi-label">Signals</div>
+              <div class="rad-kpi-value"><%= report.totals.signals_total || 0 %></div>
+            </div></div>
+            <div class="col-md-2 col-6"><div class="rad-kpi k-red">
+              <div class="rad-kpi-label">High / critical</div>
+              <div class="rad-kpi-value"><%= report.totals.high_severity || 0 %></div>
+            </div></div>
+            <div class="col-md-2 col-6"><div class="rad-kpi k-green">
+              <div class="rad-kpi-label">Confirmed</div>
+              <div class="rad-kpi-value"><%= report.totals.confirmed || 0 %></div>
+            </div></div>
+            <div class="col-md-2 col-6"><div class="rad-kpi k-amber">
+              <div class="rad-kpi-label">Pending review</div>
+              <div class="rad-kpi-value"><%= report.totals.pending || 0 %></div>
+            </div></div>
+            <div class="col-md-2 col-6"><div class="rad-kpi">
+              <div class="rad-kpi-label">Dismissed</div>
+              <div class="rad-kpi-value"><%= report.totals.dismissed || 0 %></div>
+            </div></div>
+            <div class="col-md-2 col-6"><div class="rad-kpi k-violet">
+              <div class="rad-kpi-label">Avg confidence</div>
+              <div class="rad-kpi-value"><%= report.totals.avg_confidence || 0 %></div>
+            </div></div>
+          </div>
+
+          <% if (report.timeline.length) { %>
+            <hr class="rad-hr">
+            <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--rad-muted);">Signals per day</h3>
+            <% var mxT = Math.max.apply(null, report.timeline.map(function (t) { return Number(t.n); })); %>
+            <div class="rad-spark mt-2">
+              <% report.timeline.forEach(function (t) { %>
+                <div title="<%= f.fmtDate(t.day) %>: <%= t.n %> signal(s)">
+                  <span style="height:<%= Math.max(6, Math.round((Number(t.n) / mxT) * 100)) %>%"></span>
+                </div>
+              <% }); %>
+            </div>
+            <div class="d-flex justify-content-between text-muted-2 mt-1" style="font-size:11px;">
+              <span><%= f.fmtDate(report.timeline[0].day) %></span>
+              <span><%= f.fmtDate(report.timeline[report.timeline.length - 1].day) %></span>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-lg-5">
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2>By category</h2></div>
+            <div class="rad-card-body">
+              <% if (!report.byCategory.length) { %>
+                <p class="text-muted-2 mb-0" style="font-size:13px;">No signals in this period.</p>
+              <% } else { %>
+                <% var mxC = Math.max.apply(null, report.byCategory.map(function (r) { return Number(r.n); })); %>
+                <div class="rad-bars">
+                  <% report.byCategory.forEach(function (r) { %>
+                    <div class="rad-bar-row tp-<%= f.signalColor(r.signal_type) %>">
+                      <div>
+                        <div class="rad-bar-label"><i class="<%= f.signalIcon(r.signal_type) %>"></i><span><%= f.signalLabel(r.signal_type) %></span>
+                          <span class="text-muted-2 ms-auto" style="font-size:11px;">avg <%= r.avg_confidence || 0 %></span></div>
+                        <div class="rad-bar-track"><span style="width:<%= Math.round((Number(r.n)/mxC)*100) %>%"></span></div>
+                      </div>
+                      <div class="rad-bar-value"><%= r.n %></div>
+                    </div>
+                  <% }); %>
+                </div>
+              <% } %>
+            </div>
+          </div>
+
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2>Source contribution</h2></div>
+            <div class="rad-card-body tight">
+              <div class="rad-table-wrap"><table class="rad-table">
+                <thead><tr><th>Collector</th><th class="num">Items</th><th class="num">Signals</th></tr></thead>
+                <tbody>
+                  <% if (!report.sourceMix.length) { %><tr><td class="text-muted-2">No items collected in this period.</td><td></td><td></td></tr><% } %>
+                  <% report.sourceMix.forEach(function (r) { %>
+                    <tr><td class="rad-mono"><%= r.connector_key %></td><td class="num"><%= r.items %></td><td class="num"><%= r.signals %></td></tr>
+                  <% }); %>
+                </tbody>
+              </table></div>
+            </div>
+          </div>
+
+          <div class="rad-card">
+            <div class="rad-card-head"><h2>Collection activity</h2></div>
+            <div class="rad-card-body">
+              <dl class="rad-dl" style="grid-template-columns:170px 1fr;">
+                <dt>Scan runs</dt><dd><%= report.runStats.runs || 0 %></dd>
+                <dt>Items collected</dt><dd><%= report.runStats.items || 0 %></dd>
+                <dt>Signals created</dt><dd><%= report.runStats.signals || 0 %></dd>
+                <dt>Source failures</dt><dd><%= report.runStats.failures || 0 %></dd>
+                <dt>Avg run duration</dt><dd><%= f.fmtDuration(report.runStats.avg_duration) %></dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-7">
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2>By competitor</h2></div>
+            <div class="rad-card-body tight">
+              <div class="rad-table-wrap"><table class="rad-table">
+                <thead><tr><th>Competitor</th><th>Priority</th><th class="num">Signals</th><th class="num">High</th><th class="num">Avg conf.</th><th class="num">Top</th><th class="nowrap">Last signal</th></tr></thead>
+                <tbody>
+                  <% report.byCompetitor.forEach(function (r) { %>
+                    <tr>
+                      <td><a class="rad-td-title" href="<%= u('competitors/' + r.id) %>"><%= r.name %></a></td>
+                      <td><span class="rad-badge <%= r.priority === 'high' ? 'sev-high' : (r.priority === 'low' ? 'sev-low' : 'sev-medium') %>"><%= r.priority %></span></td>
+                      <td class="num"><strong><%= r.signals || 0 %></strong></td>
+                      <td class="num"><%= r.high_count || 0 %></td>
+                      <td class="num"><%= r.avg_confidence || '—' %></td>
+                      <td class="num"><%= r.top_confidence || '—' %></td>
+                      <td class="nowrap rad-td-sub"><%= r.last_signal_at ? f.fmtDate(r.last_signal_at) : '—' %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table></div>
+            </div>
+          </div>
+
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2>Top signals in period</h2></div>
+            <div class="rad-card-body tight">
+              <div class="rad-table-wrap"><table class="rad-table">
+                <thead><tr><th>Competitor</th><th>Signal</th><th class="num">Conf.</th><th class="num">Impact</th><th>Status</th></tr></thead>
+                <tbody>
+                  <% if (!report.topSignals.length) { %><tr><td colspan="5" class="text-muted-2">No signals in this period.</td></tr><% } %>
+                  <% report.topSignals.forEach(function (s) { %>
+                    <tr>
+                      <td class="nowrap rad-td-sub"><%= s.competitor_name %></td>
+                      <td>
+                        <a class="rad-td-title" href="<%= u('signals/' + s.id) %>"><%= f.truncate(s.title, 66) %></a>
+                        <div class="rad-td-sub"><%= f.signalLabel(s.signal_type) %> · <%= f.fmtDate(s.detected_at) %></div>
+                      </td>
+                      <td class="num"><%= s.confidence %></td>
+                      <td class="num"><%= s.impact %></td>
+                      <td><span class="rad-badge <%= f.STATUS_META[s.status].badge %>"><%= f.STATUS_META[s.status].label %></span></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table></div>
+            </div>
+          </div>
+
+          <div class="rad-card">
+            <div class="rad-card-head"><h2>Saved reports</h2></div>
+            <div class="rad-card-body tight">
+              <div class="rad-table-wrap"><table class="rad-table">
+                <tbody>
+                  <% if (!saved.length) { %><tr><td class="text-muted-2">No saved reports yet.</td></tr><% } %>
+                  <% saved.forEach(function (r) { %>
+                    <tr>
+                      <td>
+                        <a class="rad-td-title" href="<%= u('reports') %>?<%= qs({ from: f.fmtDateInput(r.date_from), to: f.fmtDateInput(r.date_to), competitorId: r.competitor_id || '' }) %>"><%= r.name %></a>
+                        <div class="rad-td-sub"><%= f.titleCase(r.report_type) %> · saved by <%= r.generated_by_name || 'system' %> · <%= f.timeAgo(r.created_at) %></div>
+                      </td>
+                      <td class="nowrap">
+                        <a class="btn btn-ghost btn-xs" href="<%= u('reports/export') %>?<%= qs({ from: f.fmtDateInput(r.date_from), to: f.fmtDateInput(r.date_to), competitorId: r.competitor_id || '' }) %>"><i class="fa-solid fa-file-csv"></i>CSV</a>
+                      </td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

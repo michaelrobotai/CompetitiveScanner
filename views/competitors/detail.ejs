@@ -1,0 +1,474 @@
+
+<%- include('../partials/head') %>
+<div class="rad-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="rad-main">
+    <%- include('../partials/topbar', {
+      crumb: 'Competitors', heading: competitor.name,
+      scanReturnTo: 'competitors/' + competitor.id, scanCompetitorId: competitor.id,
+      extraActions: can('competitors.manage') ? '<a class="btn btn-ghost btn-sm" href="' + u('competitors/' + competitor.id + '/edit') + '"><i class="fa-solid fa-pen"></i>Edit</a>' : ''
+    }) %>
+    <div class="rad-content">
+      <%- include('../partials/flash') %>
+
+      <!-- Header summary -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-3 col-6"><div class="rad-kpi k-violet">
+          <i class="fa-solid fa-tower-broadcast rad-kpi-icon"></i>
+          <div class="rad-kpi-label">Signals</div>
+          <div class="rad-kpi-value"><%= stats.signals_total || 0 %></div>
+          <div class="rad-kpi-foot"><%= stats.signals_new || 0 %> awaiting review</div>
+        </div></div>
+        <div class="col-md-3 col-6"><div class="rad-kpi k-red">
+          <i class="fa-solid fa-triangle-exclamation rad-kpi-icon"></i>
+          <div class="rad-kpi-label">High / critical</div>
+          <div class="rad-kpi-value"><%= stats.signals_high || 0 %></div>
+          <div class="rad-kpi-foot"><%= stats.last_signal_at ? 'Last ' + f.timeAgo(stats.last_signal_at) : 'None yet' %></div>
+        </div></div>
+        <div class="col-md-3 col-6"><div class="rad-kpi k-green">
+          <i class="fa-solid fa-inbox rad-kpi-icon"></i>
+          <div class="rad-kpi-label">Raw items</div>
+          <div class="rad-kpi-value"><%= stats.items_total || 0 %></div>
+          <div class="rad-kpi-foot"><%= sources.length %> configured sources</div>
+        </div></div>
+        <div class="col-md-3 col-6"><div class="rad-kpi k-amber">
+          <i class="fa-solid fa-shield-halved rad-kpi-icon"></i>
+          <div class="rad-kpi-label">Threat level</div>
+          <div class="rad-kpi-value" style="font-size:20px;text-transform:capitalize;"><%= profile ? profile.threat_level : 'not set' %></div>
+          <div class="rad-kpi-foot">Priority: <%= competitor.priority %></div>
+        </div></div>
+      </div>
+
+      <div class="rad-tabs">
+        <% var tabs = [
+          { k: 'overview', l: 'Overview', i: 'fa-solid fa-circle-info' },
+          { k: 'signals', l: 'Signals (' + signals.length + ')', i: 'fa-solid fa-tower-broadcast' },
+          { k: 'sources', l: 'Sources (' + sources.length + ')', i: 'fa-solid fa-plug' },
+          { k: 'items', l: 'Raw items', i: 'fa-solid fa-inbox' },
+          { k: 'profile', l: 'Strategy profile', i: 'fa-solid fa-chess' },
+          { k: 'notes', l: 'Notes (' + notes.length + ')', i: 'fa-solid fa-note-sticky' },
+          { k: 'activity', l: 'Activity', i: 'fa-solid fa-clock-rotate-left' }
+        ]; %>
+        <% tabs.forEach(function (t) { %>
+          <a class="rad-tab <%= tab === t.k ? 'active' : '' %>" href="<%= u('competitors/' + competitor.id) %>?tab=<%= t.k %>"><i class="<%= t.i %>"></i><%= t.l %></a>
+        <% }); %>
+      </div>
+
+      <!-- OVERVIEW -->
+      <% if (tab === 'overview') { %>
+        <div class="row g-3">
+          <div class="col-lg-7">
+            <div class="rad-card mb-3">
+              <div class="rad-card-head"><h2>Company profile</h2>
+                <div class="rad-card-head-actions">
+                  <span class="rad-badge <%= competitor.tracking_status === 'active' ? 'st-confirmed' : (competitor.tracking_status === 'paused' ? 'sev-medium' : 'st-dismissed') %>"><%= f.titleCase(competitor.tracking_status) %></span>
+                </div>
+              </div>
+              <div class="rad-card-body">
+                <dl class="rad-dl">
+                  <dt>Website</dt>
+                  <dd><% if (competitor.website) { %><a href="<%= competitor.website %>" target="_blank" rel="noopener"><%= competitor.website %> <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i></a><% } else { %>—<% } %></dd>
+                  <dt>LinkedIn</dt>
+                  <dd><% if (competitor.linkedin_url) { %><a href="<%= competitor.linkedin_url %>" target="_blank" rel="noopener">Company page <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i></a><% } else { %>—<% } %></dd>
+                  <dt>Ticker</dt><dd><%= competitor.ticker || '— (private company)' %></dd>
+                  <dt>Industry</dt><dd><%= competitor.industry || '—' %></dd>
+                  <dt>HQ</dt><dd><%= competitor.hq_country || '—' %></dd>
+                  <dt>Headcount</dt><dd><%= competitor.size_band === 'unknown' ? '—' : competitor.size_band %></dd>
+                  <dt>Priority</dt><dd><span class="rad-badge <%= competitor.priority === 'high' ? 'sev-high' : (competitor.priority === 'low' ? 'sev-low' : 'sev-medium') %>"><%= f.titleCase(competitor.priority) %></span></dd>
+                  <dt>Tags</dt>
+                  <dd><% if (competitor.tags) { competitor.tags.split(',').forEach(function (t) { %><span class="rad-tag"><%= t.trim() %></span><% }); } else { %>—<% } %></dd>
+                  <dt>Added</dt><dd><%= f.fmtDateTime(competitor.created_at) %></dd>
+                </dl>
+                <% if (competitor.description) { %>
+                  <hr class="rad-hr">
+                  <p class="mb-0" style="font-size:13.5px;color:var(--rad-ink-2);"><%= competitor.description %></p>
+                <% } %>
+              </div>
+            </div>
+
+            <% if (can('competitors.manage')) { %>
+              <div class="rad-card">
+                <div class="rad-card-head"><h2>Tracking control</h2></div>
+                <div class="rad-card-body d-flex gap-2 flex-wrap">
+                  <% ['active','paused','archived'].forEach(function (s) { %>
+                    <% if (competitor.tracking_status !== s) { %>
+                      <form method="post" action="<%= u('competitors/' + competitor.id + '/status') %>">
+                        <input type="hidden" name="tracking_status" value="<%= s %>">
+                        <button class="btn btn-ghost btn-sm" type="submit">
+                          <i class="fa-solid <%= s === 'active' ? 'fa-play' : (s === 'paused' ? 'fa-pause' : 'fa-box-archive') %>"></i>Set <%= s %>
+                        </button>
+                      </form>
+                    <% } %>
+                  <% }); %>
+                </div>
+              </div>
+            <% } %>
+          </div>
+
+          <div class="col-lg-5">
+            <div class="rad-card mb-3">
+              <div class="rad-card-head"><h2>Signals by category</h2></div>
+              <div class="rad-card-body">
+                <% if (!byCategory.length) { %>
+                  <p class="text-muted-2 mb-0" style="font-size:13px;">No signals detected yet for this competitor.</p>
+                <% } else { %>
+                  <% var mx = Math.max.apply(null, byCategory.map(function (r) { return Number(r.n); })); %>
+                  <div class="rad-bars">
+                    <% byCategory.forEach(function (r) { %>
+                      <div class="rad-bar-row tp-<%= f.signalColor(r.signal_type) %>">
+                        <div>
+                          <div class="rad-bar-label"><i class="<%= f.signalIcon(r.signal_type) %>"></i><span><%= f.signalLabel(r.signal_type) %></span></div>
+                          <div class="rad-bar-track"><span style="width:<%= Math.round((Number(r.n)/mx)*100) %>%"></span></div>
+                        </div>
+                        <div class="rad-bar-value"><%= r.n %></div>
+                      </div>
+                    <% }); %>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+
+            <div class="rad-card">
+              <div class="rad-card-head"><h2>Recent scan runs</h2>
+                <div class="rad-card-head-actions"><a class="btn btn-ghost btn-xs" href="<%= u('runs') %>?competitorId=<%= competitor.id %>">All</a></div>
+              </div>
+              <div class="rad-card-body tight">
+                <div class="rad-table-wrap">
+                  <table class="rad-table">
+                    <tbody>
+                      <% if (!runs.length) { %><tr><td class="text-muted-2">No scan runs recorded.</td></tr><% } %>
+                      <% runs.forEach(function (r) { %>
+                        <tr>
+                          <td>
+                            <a class="rad-td-title" href="<%= u('runs/' + r.id) %>">Run #<%= r.id %></a>
+                            <div class="rad-td-sub"><%= f.titleCase(r.run_type) %> · <%= f.timeAgo(r.started_at) %></div>
+                          </td>
+                          <td class="nowrap"><span class="rad-badge <%= r.status === 'completed' ? 'st-confirmed' : (r.status === 'partial' ? 'sev-medium' : (r.status === 'failed' ? 'sev-critical' : 'st-new')) %>"><%= f.titleCase(r.status) %></span></td>
+                          <td class="num"><%= r.items_collected %> items</td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- SIGNALS -->
+      <% if (tab === 'signals') { %>
+        <% if (!signals.length) { %>
+          <div class="rad-card"><div class="rad-empty">
+            <i class="fa-solid fa-tower-broadcast"></i>
+            <strong>No signals for this competitor yet</strong>
+            Run a scan to collect items and generate signals.
+          </div></div>
+        <% } else { %>
+          <div class="rad-signal-grid">
+            <% signals.forEach(function (s) { %>
+              <%- include('../partials/signal-card', { signal: Object.assign({}, s, { competitor_name: competitor.name }) }) %>
+            <% }); %>
+          </div>
+        <% } %>
+      <% } %>
+
+      <!-- SOURCES -->
+      <% if (tab === 'sources') { %>
+        <div class="row g-3">
+          <div class="col-lg-7">
+            <div class="rad-card">
+              <div class="rad-card-head"><h2>Configured sources</h2><span class="rad-sub"><%= sources.length %> total</span></div>
+              <div class="rad-card-body tight">
+                <% if (!sources.length) { %>
+                  <div class="rad-empty"><i class="fa-solid fa-plug"></i><strong>No sources configured</strong>Add one on the right.</div>
+                <% } %>
+                <% sources.forEach(function (s) { %>
+                  <div class="rad-source-row">
+                    <span class="rad-source-icon"><i class="fa-solid <%= s.connector_key === 'website_page' ? 'fa-globe' : (s.connector_key === 'blog_rss' ? 'fa-rss' : (s.connector_key.indexOf('linkedin') === 0 ? 'fa-briefcase' : (s.connector_key === 'news_search' ? 'fa-newspaper' : (s.connector_key === 'job_board' ? 'fa-user-tie' : (s.connector_key === 'funding_db' ? 'fa-sack-dollar' : (s.connector_key === 'sec_filing' ? 'fa-file-contract' : (s.connector_key === 'review_site' ? 'fa-star-half-stroke' : 'fa-hashtag'))))))) %>"></i></span>
+                    <span class="rad-source-meta">
+                      <strong><%= s.label %> <% if (!s.enabled) { %><span class="rad-badge st-dismissed">disabled</span><% } %></strong>
+                      <span><%= s.connector_key %> · <%= s.watch_target %> · <%= s.check_frequency %><%= s.url ? ' · ' + s.url : '' %></span>
+                      <% if (s.last_error) { %><span class="text-danger"><i class="fa-solid fa-circle-exclamation"></i> <%= f.truncate(s.last_error, 120) %></span><% } %>
+                    </span>
+                    <span class="rad-source-actions">
+                      <span class="rad-badge <%= f.SOURCE_STATUS_META[s.last_status].badge %>" title="<%= s.last_checked_at ? 'Checked ' + f.fmtDateTime(s.last_checked_at) : 'Never checked' %>">
+                        <i class="<%= f.SOURCE_STATUS_META[s.last_status].icon %>"></i><%= f.SOURCE_STATUS_META[s.last_status].label %>
+                      </span>
+                      <% if (can('sources.manage')) { %>
+                        <button class="btn btn-ghost btn-xs" type="button" data-toggle-target="src-<%= s.id %>" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                        <form class="rad-inline-form" method="post" action="<%= u('competitors/' + competitor.id + '/sources/' + s.id + '/toggle') %>">
+                          <button class="btn btn-ghost btn-xs" type="submit" title="<%= s.enabled ? 'Disable' : 'Enable' %>"><i class="fa-solid <%= s.enabled ? 'fa-toggle-on' : 'fa-toggle-off' %>"></i></button>
+                        </form>
+                        <form class="rad-inline-form" method="post" action="<%= u('competitors/' + competitor.id + '/sources/' + s.id + '/delete') %>" data-confirm="Remove source &quot;<%= s.label %>&quot;?">
+                          <button class="btn btn-ghost btn-xs" type="submit" title="Remove"><i class="fa-solid fa-trash"></i></button>
+                        </form>
+                      <% } %>
+                    </span>
+                  </div>
+                  <% if (can('sources.manage')) { %>
+                    <div id="src-<%= s.id %>" hidden style="padding:12px 14px;border-bottom:1px solid var(--rad-line-2);background:var(--rad-surface-2);">
+                      <form method="post" action="<%= u('competitors/' + competitor.id + '/sources/' + s.id) %>" class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                          <label class="form-label">Label</label>
+                          <input class="form-control form-control-sm" name="label" value="<%= s.label %>">
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">URL</label>
+                          <input class="form-control form-control-sm" name="url" value="<%= s.url || '' %>">
+                        </div>
+                        <div class="col-md-2">
+                          <label class="form-label">Watch target</label>
+                          <select class="form-select form-select-sm" name="watch_target">
+                            <% watchTargets.forEach(function (t) { %>
+                              <option value="<%= t %>" <%= s.watch_target === t ? 'selected' : '' %>><%= t %></option>
+                            <% }); %>
+                          </select>
+                        </div>
+                        <div class="col-md-2">
+                          <label class="form-label">Frequency</label>
+                          <select class="form-select form-select-sm" name="check_frequency">
+                            <% ['daily','weekly','manual'].forEach(function (t) { %>
+                              <option value="<%= t %>" <%= s.check_frequency === t ? 'selected' : '' %>><%= t %></option>
+                            <% }); %>
+                          </select>
+                        </div>
+                        <div class="col-12 d-flex align-items-center gap-3">
+                          <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="en-<%= s.id %>" name="enabled" value="on" <%= s.enabled ? 'checked' : '' %>>
+                            <label class="form-check-label" for="en-<%= s.id %>">Enabled</label>
+                          </div>
+                          <button class="btn btn-rad btn-sm ms-auto" type="submit"><i class="fa-solid fa-check"></i>Save source</button>
+                        </div>
+                      </form>
+                    </div>
+                  <% } %>
+                <% }); %>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-5">
+            <% if (can('sources.manage')) { %>
+              <div class="rad-card">
+                <div class="rad-card-head"><h2>Add a source</h2></div>
+                <div class="rad-card-body">
+                  <form method="post" action="<%= u('competitors/' + competitor.id + '/sources') %>">
+                    <div class="mb-3">
+                      <label class="form-label" for="connector_key">Collector</label>
+                      <select class="form-select" id="connector_key" name="connector_key" required>
+                        <% catalog.forEach(function (a) { %>
+                          <option value="<%= a.key %>"><%= a.name %><%= a.configured ? '' : ' (no credentials)' %></option>
+                        <% }); %>
+                      </select>
+                      <div class="form-text">Collectors without credentials degrade gracefully — they report “not configured”, and in demo mode emit simulated items.</div>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label" for="new_label">Label</label>
+                      <input class="form-control" id="new_label" name="label" placeholder="e.g. Pricing page">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label" for="new_url">URL (for page / feed collectors)</label>
+                      <input class="form-control" id="new_url" name="url" placeholder="https://example.com/pricing">
+                    </div>
+                    <div class="row g-2 mb-3">
+                      <div class="col-6">
+                        <label class="form-label" for="new_target">Watch target</label>
+                        <select class="form-select" id="new_target" name="watch_target">
+                          <% watchTargets.forEach(function (t) { %><option value="<%= t %>"><%= t %></option><% }); %>
+                        </select>
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label" for="new_freq">Frequency</label>
+                        <select class="form-select" id="new_freq" name="check_frequency">
+                          <option value="daily">daily</option><option value="weekly">weekly</option><option value="manual">manual</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="new_enabled" name="enabled" value="on" checked>
+                      <label class="form-check-label" for="new_enabled">Enabled</label>
+                    </div>
+                    <button class="btn btn-rad w-100" type="submit"><i class="fa-solid fa-plus"></i>Add source</button>
+                  </form>
+                </div>
+              </div>
+            <% } else { %>
+              <div class="rad-card"><div class="rad-card-body text-muted-2" style="font-size:13px;">
+                <i class="fa-solid fa-lock me-2"></i>Your role has read-only access to sources.
+              </div></div>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- RAW ITEMS -->
+      <% if (tab === 'items') { %>
+        <div class="rad-card">
+          <div class="rad-card-head"><h2>Latest collected items</h2>
+            <div class="rad-card-head-actions"><a class="btn btn-ghost btn-sm" href="<%= u('items') %>?competitorId=<%= competitor.id %>"><i class="fa-solid fa-list"></i>Open in Raw Updates</a></div>
+          </div>
+          <div class="rad-card-body tight">
+            <% if (!items.length) { %>
+              <div class="rad-empty"><i class="fa-solid fa-inbox"></i><strong>Nothing collected yet</strong>Trigger a scan for this competitor.</div>
+            <% } else { %>
+              <div class="rad-table-wrap">
+                <table class="rad-table">
+                  <thead><tr><th>Item</th><th>Collector</th><th>Change</th><th class="num">Cred.</th><th>Status</th><th class="nowrap">Captured</th></tr></thead>
+                  <tbody>
+                    <% items.forEach(function (it) { %>
+                      <tr>
+                        <td>
+                          <a class="rad-td-title" href="<%= u('items/' + it.id) %>"><%= f.truncate(it.title, 82) %></a>
+                          <div class="rad-td-sub"><%= f.truncate(it.excerpt || '', 100) %><% if (it.is_mock) { %> <span class="rad-mock-flag"><i class="fa-solid fa-flask"></i> simulated</span><% } %></div>
+                        </td>
+                        <td class="nowrap rad-td-sub"><%= it.connector_key %></td>
+                        <td><span class="rad-badge <%= it.change_type === 'changed' ? 'sev-medium' : (it.change_type === 'new' ? 'st-new' : 'st-dismissed') %>"><%= it.change_type %></span></td>
+                        <td class="num"><%= it.credibility %></td>
+                        <td><span class="rad-badge <%= it.processing_status === 'analysed' ? 'st-confirmed' : (it.processing_status === 'pending' ? 'st-new' : 'st-dismissed') %>"><%= it.processing_status %></span></td>
+                        <td class="nowrap rad-td-sub"><%= f.timeAgo(it.captured_at) %></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- STRATEGY PROFILE -->
+      <% if (tab === 'profile') { %>
+        <div class="rad-card">
+          <div class="rad-card-head"><h2>Strategy profile</h2>
+            <% if (profile) { %><span class="rad-sub">Updated <%= f.timeAgo(profile.updated_at) %></span><% } %>
+          </div>
+          <div class="rad-card-body">
+            <% if (!can('competitors.manage')) { %>
+              <dl class="rad-dl">
+                <dt>Threat level</dt><dd><%= profile ? f.titleCase(profile.threat_level) : '—' %></dd>
+                <dt>Positioning</dt><dd><%= profile && profile.positioning ? profile.positioning : '—' %></dd>
+                <dt>Target segments</dt><dd><%= profile && profile.target_segments ? profile.target_segments : '—' %></dd>
+                <dt>Pricing model</dt><dd><%= profile && profile.pricing_model ? profile.pricing_model : '—' %></dd>
+                <dt>Key products</dt><dd><%= profile && profile.key_products ? profile.key_products : '—' %></dd>
+                <dt>Strengths</dt><dd><%= profile && profile.strengths ? profile.strengths : '—' %></dd>
+                <dt>Weaknesses</dt><dd><%= profile && profile.weaknesses ? profile.weaknesses : '—' %></dd>
+                <dt>Recent moves</dt><dd><%= profile && profile.recent_moves ? profile.recent_moves : '—' %></dd>
+              </dl>
+            <% } else { %>
+              <form method="post" action="<%= u('competitors/' + competitor.id + '/profile') %>">
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label" for="threat_level">Threat level</label>
+                    <select class="form-select" id="threat_level" name="threat_level">
+                      <% ['critical','high','medium','low'].forEach(function (t) { %>
+                        <option value="<%= t %>" <%= profile && profile.threat_level === t ? 'selected' : (!profile && t === 'medium' ? 'selected' : '') %>><%= f.titleCase(t) %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+                  <div class="col-md-8">
+                    <label class="form-label" for="target_segments">Target segments</label>
+                    <input class="form-control" id="target_segments" name="target_segments" value="<%= profile ? (profile.target_segments || '') : '' %>">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="positioning">Positioning</label>
+                    <textarea class="form-control" id="positioning" name="positioning" rows="3"><%= profile ? (profile.positioning || '') : '' %></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="pricing_model">Pricing model</label>
+                    <textarea class="form-control" id="pricing_model" name="pricing_model" rows="3"><%= profile ? (profile.pricing_model || '') : '' %></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="key_products">Key products</label>
+                    <textarea class="form-control" id="key_products" name="key_products" rows="3"><%= profile ? (profile.key_products || '') : '' %></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="recent_moves">Recent moves</label>
+                    <textarea class="form-control" id="recent_moves" name="recent_moves" rows="3"><%= profile ? (profile.recent_moves || '') : '' %></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="strengths">Strengths</label>
+                    <textarea class="form-control" id="strengths" name="strengths" rows="3"><%= profile ? (profile.strengths || '') : '' %></textarea>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="weaknesses">Weaknesses</label>
+                    <textarea class="form-control" id="weaknesses" name="weaknesses" rows="3"><%= profile ? (profile.weaknesses || '') : '' %></textarea>
+                  </div>
+                  <div class="col-12">
+                    <button class="btn btn-rad" type="submit"><i class="fa-solid fa-floppy-disk"></i>Save profile</button>
+                  </div>
+                </div>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- NOTES -->
+      <% if (tab === 'notes') { %>
+        <div class="row g-3">
+          <div class="col-lg-7">
+            <div class="rad-card">
+              <div class="rad-card-head"><h2>Analyst notes</h2></div>
+              <div class="rad-card-body">
+                <% if (!notes.length) { %>
+                  <p class="text-muted-2 mb-0" style="font-size:13px;">No notes yet.</p>
+                <% } else { %>
+                  <ul class="rad-timeline">
+                    <% notes.forEach(function (n) { %>
+                      <li>
+                        <strong><%= n.author_name || 'System' %></strong>
+                        <span class="t-when">· <%= f.fmtDateTime(n.created_at) %></span>
+                        <div style="color:var(--rad-ink-2);margin-top:2px;"><%= n.body %></div>
+                      </li>
+                    <% }); %>
+                  </ul>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <% if (can('notes.create')) { %>
+              <div class="rad-card">
+                <div class="rad-card-head"><h2>Add a note</h2></div>
+                <div class="rad-card-body">
+                  <form method="post" action="<%= u('competitors/' + competitor.id + '/notes') %>">
+                    <textarea class="form-control mb-3" name="body" rows="4" required placeholder="Context, hypothesis, follow-up action…"></textarea>
+                    <button class="btn btn-rad w-100" type="submit"><i class="fa-solid fa-paper-plane"></i>Add note</button>
+                  </form>
+                </div>
+              </div>
+            <% } else { %>
+              <div class="rad-card"><div class="rad-card-body text-muted-2" style="font-size:13px;"><i class="fa-solid fa-lock me-2"></i>Viewers cannot add notes.</div></div>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- ACTIVITY -->
+      <% if (tab === 'activity') { %>
+        <div class="rad-card">
+          <div class="rad-card-head"><h2>Change history</h2><span class="rad-sub">From the audit log</span></div>
+          <div class="rad-card-body">
+            <% if (!history.length) { %>
+              <p class="text-muted-2 mb-0" style="font-size:13px;">No recorded changes for this competitor.</p>
+            <% } else { %>
+              <ul class="rad-timeline">
+                <% history.forEach(function (h) { %>
+                  <li>
+                    <strong><%= f.titleCase(h.action) %></strong> by <%= h.actor_email || 'system' %>
+                    <span class="t-when">· <%= f.fmtDateTime(h.created_at) %></span>
+                    <% if (h.details_json && h.details_json !== '{}') { %>
+                      <div class="rad-mono text-muted-2" style="margin-top:3px;word-break:break-all;"><%= f.truncate(h.details_json, 220) %></div>
+                    <% } %>
+                  </li>
+                <% }); %>
+              </ul>
+            <% } %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>

@@ -1,0 +1,91 @@
+<%- include('partials/head') %>
+<div class="rad-login">
+  <aside class="rad-login-aside">
+    <div class="rad-brand">
+      <span class="rad-brand-mark"><i class="fa-solid fa-satellite-dish"></i></span>
+      <span class="rad-brand-text">
+        <strong>Competitive Radar</strong>
+        <span>Signal intelligence</span>
+      </span>
+    </div>
+
+    <h2>Know what your competitors do — before the market does.</h2>
+    <p class="lead-copy">
+      Competitive Radar watches every public trace a competitor leaves — websites, filings,
+      press, hiring, funding databases, reviews and social chatter — and turns the noise into
+      a handful of signals that actually move the needle.
+    </p>
+
+    <ul class="rad-login-features">
+      <li>
+        <i class="fa-solid fa-crosshairs"></i>
+        <span><strong>Seven signal categories</strong>Acquisition targets, mergers, acquirers, major releases and unusual revenue swings.</span>
+      </li>
+      <li>
+        <i class="fa-solid fa-diagram-project"></i>
+        <span><strong>Ten pluggable collectors</strong>Website diffing, RSS, LinkedIn, news, jobs, funding, SEC filings, reviews and social.</span>
+      </li>
+      <li>
+        <i class="fa-solid fa-scale-balanced"></i>
+        <span><strong>Scored, evidence-backed signals</strong>Every signal cites the raw items it came from, with a transparent confidence formula.</span>
+      </li>
+      <li>
+        <i class="fa-solid fa-envelope-open-text"></i>
+        <span><strong>Daily digest &amp; instant alerts</strong>Configurable recipients, send time, minimum confidence and per-category toggles.</span>
+      </li>
+    </ul>
+
+    <div class="aside-foot">Automated competitor intelligence &middot; scheduled daily scans &middot; full audit trail</div>
+  </aside>
+
+  <main class="rad-login-main">
+    <div class="rad-login-card">
+      <div class="rad-card">
+        <h1 style="font-size:23px;">Sign in</h1>
+        <p class="text-muted-2 mb-4" style="font-size:13px;">Use a demo account below or enter your credentials.</p>
+
+        <% if (error) { %>
+          <div class="rad-flash danger mb-3">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <div><%= error %></div>
+          </div>
+        <% } %>
+
+        <form action="<%= u('login') %>" method="post">
+          <input type="hidden" name="next" value="<%= next %>">
+          <div class="mb-3">
+            <label class="form-label" for="email">Email address</label>
+            <input class="form-control" id="email" name="email" type="email" autocomplete="username" required placeholder="you@company.com">
+          </div>
+          <div class="mb-4">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••">
+          </div>
+          <button class="btn btn-rad w-100" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i>Sign in</button>
+        </form>
+
+        <% if (accounts && accounts.length) { %>
+          <div class="rad-divider">Demo accounts</div>
+          <% accounts.forEach(function (a) { %>
+            <button type="button" class="rad-demo-account"
+                    data-demo-email="<%= a.email %>" data-demo-password="demo1234">
+              <span class="ra-role r-<%= a.role %>">
+                <i class="fa-solid <%= a.role === 'admin' ? 'fa-user-shield' : (a.role === 'analyst' ? 'fa-user-pen' : 'fa-user') %>"></i>
+              </span>
+              <span class="ra-meta">
+                <strong><%= a.full_name %> &middot; <%= a.role %></strong>
+                <span><%= a.email %></span>
+              </span>
+              <span class="ra-pass">demo1234</span>
+            </button>
+          <% }); %>
+          <p class="form-text mt-2">
+            <i class="fa-solid fa-circle-info"></i>
+            Click an account to fill the form. Password for all demo accounts is <span class="rad-mono">demo1234</span>.
+          </p>
+        <% } %>
+      </div>
+    </div>
+  </main>
+</div>
+<%- include('partials/foot') %>

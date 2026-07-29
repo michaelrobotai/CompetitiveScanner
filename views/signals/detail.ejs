@@ -1,0 +1,230 @@
+<%- include('../partials/head') %>
+<div class="rad-shell">
+  <%- include('../partials/sidebar') %>
+  <div class="rad-main">
+    <%- include('../partials/topbar', {
+      crumb: 'Signals · ' + signal.competitor_name, heading: f.truncate(signal.title, 78),
+      scanReturnTo: 'signals/' + signal.id, scanCompetitorId: signal.competitor_id
+    }) %>
+    <div class="rad-content">
+      <%- include('../partials/flash') %>
+
+      <div class="row g-3">
+        <div class="col-lg-8">
+          <!-- Signal head -->
+          <div class="rad-card mb-3 tp-<%= f.signalColor(signal.signal_type) %>">
+            <div class="rad-card-body">
+              <div class="d-flex align-items-start gap-3 mb-3">
+                <span class="rsc-icon" style="width:44px;height:44px;flex:0 0 44px;font-size:17px;"><i class="<%= f.signalIcon(signal.signal_type) %>"></i></span>
+                <div class="flex-grow-1">
+                  <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                    <span class="rsc-type" style="font-size:12.5px;"><%= f.signalLabel(signal.signal_type) %></span>
+                    <span class="rad-badge <%= f.SEVERITY_META[signal.severity].badge %>"><%= f.SEVERITY_META[signal.severity].label %></span>
+                    <span class="rad-badge <%= f.STATUS_META[signal.status].badge %>"><%= f.STATUS_META[signal.status].label %></span>
+                    <% if (signal.alert_sent) { %><span class="rad-chip"><i class="fa-solid fa-bell"></i>Instant alert sent</span><% } %>
+                  </div>
+                  <h2 style="font-size:19px;line-height:1.35;"><%= signal.title %></h2>
+                  <div class="text-muted-2 mt-1" style="font-size:12.5px;">
+                    <a href="<%= u('competitors/' + signal.competitor_id) %>"><%= signal.competitor_name %></a>
+                    · detected <%= f.fmtDateTime(signal.detected_at) %> (<%= f.timeAgo(signal.detected_at) %>)
+                    <% if (signal.scan_run_id) { %> · <a href="<%= u('runs/' + signal.scan_run_id) %>">scan run #<%= signal.scan_run_id %></a><% } %>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <div class="rsc-meter-label mb-1"><span>Confidence</span><span><%= signal.confidence %>/100</span></div>
+                  <div class="rad-meter <%= signal.confidence >= 70 ? 'm-high' : (signal.confidence >= 50 ? 'm-mid' : 'm-low') %>" style="height:9px;"><span style="width:<%= signal.confidence %>%"></span></div>
+                </div>
+                <div class="col-md-6">
+                  <div class="rsc-meter-label mb-1"><span>Impact</span><span><%= signal.impact %>/100</span></div>
+                  <div class="rad-meter <%= signal.impact >= 80 ? 'm-high' : (signal.impact >= 60 ? 'm-mid' : 'm-low') %>" style="height:9px;"><span style="width:<%= signal.impact %>%"></span></div>
+                </div>
+              </div>
+
+              <% if (signal.summary) { %>
+                <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--rad-muted);">Summary</h3>
+                <p style="font-size:14px;color:var(--rad-ink-2);"><%= signal.summary %></p>
+              <% } %>
+
+              <% if (signal.rationale) { %>
+                <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--rad-muted);margin-top:16px;">Why the radar flagged this</h3>
+                <pre class="rad-pre rad-diff" style="white-space:pre-wrap;max-height:none;"><%= signal.rationale %></pre>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Evidence -->
+          <div class="rad-card mb-3">
+            <div class="rad-card-head">
+              <h2><i class="fa-solid fa-link me-2 text-muted-2"></i>Evidence</h2>
+              <span class="rad-sub"><%= evidence.length %> raw item(s) · <%= signal.corroborating_sources %> distinct source type(s)</span>
+            </div>
+            <div class="rad-card-body">
+              <% if (!evidence.length) { %>
+                <p class="text-muted-2 mb-0" style="font-size:13px;">No evidence linked — this should not happen; every signal must cite its sources.</p>
+              <% } else { %>
+                <ul class="rad-evidence">
+                  <% evidence.forEach(function (e) { %>
+                    <li>
+                      <div class="rev-head">
+                        <span class="rev-connector"><%= e.connector_key %></span>
+                        <span class="rev-title"><a href="<%= u('items/' + e.id) %>"><%= f.truncate(e.title, 96) %></a></span>
+                        <% if (e.is_mock) { %><span class="rad-mock-flag"><i class="fa-solid fa-flask"></i> simulated</span><% } %>
+                        <span class="ms-auto rad-badge st-new">relevance <%= e.relevance %></span>
+                      </div>
+                      <% if (e.snippet || e.excerpt) { %><div class="rev-snippet"><%= f.truncate(e.snippet || e.excerpt, 340) %></div><% } %>
+                      <div class="rev-meta">
+                        <span><i class="fa-solid fa-shield-halved"></i> credibility <%= e.credibility %></span>
+                        <span><i class="fa-regular fa-clock"></i> <%= f.fmtDateTime(e.published_at || e.captured_at) %></span>
+                        <span><i class="fa-solid fa-code-compare"></i> <%= e.change_type %></span>
+                        <% if (e.url) { %><a href="<%= e.url %>" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> source</a><% } %>
+                      </div>
+                    </li>
+                  <% }); %>
+                </ul>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Merged signals -->
+          <% if (mergedIn.length) { %>
+            <div class="rad-card mb-3">
+              <div class="rad-card-head"><h2><i class="fa-solid fa-object-group me-2 text-muted-2"></i>Merged into this signal</h2></div>
+              <div class="rad-card-body tight">
+                <div class="rad-table-wrap"><table class="rad-table"><tbody>
+                  <% mergedIn.forEach(function (m) { %>
+                    <tr>
+                      <td><a class="rad-td-title" href="<%= u('signals/' + m.id) %>">#<%= m.id %> — <%= f.truncate(m.title, 78) %></a></td>
+                      <td class="num"><%= m.confidence %></td>
+                      <td class="nowrap rad-td-sub"><%= f.fmtDateTime(m.detected_at) %></td>
+                    </tr>
+                  <% }); %>
+                </tbody></table></div>
+              </div>
+            </div>
+          <% } %>
+
+          <!-- Notes -->
+          <div class="rad-card">
+            <div class="rad-card-head"><h2><i class="fa-solid fa-note-sticky me-2 text-muted-2"></i>Notes</h2></div>
+            <div class="rad-card-body">
+              <% if (notes.length) { %>
+                <ul class="rad-timeline">
+                  <% notes.forEach(function (n) { %>
+                    <li><strong><%= n.author_name || 'System' %></strong><span class="t-when"> · <%= f.fmtDateTime(n.created_at) %></span>
+                      <div style="color:var(--rad-ink-2);margin-top:2px;"><%= n.body %></div></li>
+                  <% }); %>
+                </ul>
+              <% } else { %>
+                <p class="text-muted-2" style="font-size:13px;">No notes on this signal.</p>
+              <% } %>
+              <% if (can('notes.create')) { %>
+                <form method="post" action="<%= u('signals/' + signal.id + '/notes') %>" class="mt-2">
+                  <textarea class="form-control mb-2" name="body" rows="3" required placeholder="Add analyst context…"></textarea>
+                  <button class="btn btn-ghost btn-sm" type="submit"><i class="fa-solid fa-paper-plane"></i>Add note</button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <!-- Triage -->
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2><i class="fa-solid fa-clipboard-check me-2 text-muted-2"></i>Triage</h2></div>
+            <div class="rad-card-body">
+              <% if (signal.reviewed_at) { %>
+                <div class="rad-flash info mb-3" style="margin-bottom:14px;">
+                  <i class="fa-solid fa-user-check"></i>
+                  <div>
+                    Reviewed by <strong><%= signal.reviewer_name || 'unknown' %></strong> on <%= f.fmtDateTime(signal.reviewed_at) %>.
+                    <% if (signal.review_note) { %><div style="margin-top:4px;"><%= signal.review_note %></div><% } %>
+                  </div>
+                </div>
+              <% } %>
+
+              <% if (can('signals.triage')) { %>
+                <form method="post" action="<%= u('signals/' + signal.id + '/review') %>">
+                  <div class="mb-3">
+                    <label class="form-label" for="status">Set status</label>
+                    <select class="form-select" id="status" name="status">
+                      <% ['reviewed','confirmed','dismissed','new'].forEach(function (s) { %>
+                        <option value="<%= s %>" <%= signal.status === s ? 'selected' : '' %>><%= f.STATUS_META[s].label %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label" for="note">Reviewer note</label>
+                    <textarea class="form-control" id="note" name="note" rows="3" placeholder="Reason for confirming or dismissing…"><%= signal.review_note || '' %></textarea>
+                    <div class="form-text">Dismissed signals are retained with the reason for auditability — they are never deleted.</div>
+                  </div>
+                  <button class="btn btn-rad w-100" type="submit"><i class="fa-solid fa-check"></i>Save triage decision</button>
+                </form>
+              <% } else { %>
+                <p class="text-muted-2 mb-0" style="font-size:13px;"><i class="fa-solid fa-lock me-2"></i>Your role can view signals but not triage them.</p>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Merge -->
+          <% if (can('signals.triage') && siblings.length) { %>
+            <div class="rad-card mb-3">
+              <div class="rad-card-head"><h2><i class="fa-solid fa-object-group me-2 text-muted-2"></i>Merge duplicate</h2></div>
+              <div class="rad-card-body">
+                <p class="text-muted-2" style="font-size:12.5px;">Merge <strong>this</strong> signal into another one for the same competitor. Evidence is transferred and this signal is kept with status <em>merged</em>.</p>
+                <form method="post" action="<%= u('signals/' + signal.id + '/merge') %>" data-confirm="Merge this signal into the selected one?">
+                  <select class="form-select mb-3" name="targetId" required>
+                    <% siblings.forEach(function (s) { %>
+                      <option value="<%= s.id %>">#<%= s.id %> — <%= f.truncate(s.title, 60) %> (conf <%= s.confidence %>)</option>
+                    <% }); %>
+                  </select>
+                  <button class="btn btn-ghost w-100" type="submit"><i class="fa-solid fa-object-group"></i>Merge into selected</button>
+                </form>
+              </div>
+            </div>
+          <% } %>
+
+          <!-- Metadata -->
+          <div class="rad-card mb-3">
+            <div class="rad-card-head"><h2>Signal metadata</h2></div>
+            <div class="rad-card-body">
+              <dl class="rad-dl" style="grid-template-columns:130px 1fr;">
+                <dt>Signal ID</dt><dd class="rad-mono">#<%= signal.id %></dd>
+                <dt>Dedupe key</dt><dd class="rad-mono"><%= signal.dedupe_key %></dd>
+                <dt>Evidence</dt><dd><%= signal.evidence_count %> item(s)</dd>
+                <dt>Corroboration</dt><dd><%= signal.corroborating_sources %> distinct source type(s)</dd>
+                <dt>Created</dt><dd><%= f.fmtDateTime(signal.created_at) %></dd>
+                <dt>Updated</dt><dd><%= f.fmtDateTime(signal.updated_at) %></dd>
+                <% if (signal.merged_into_id) { %>
+                  <dt>Merged into</dt><dd><a href="<%= u('signals/' + signal.merged_into_id) %>">#<%= signal.merged_into_id %></a></dd>
+                <% } %>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Related -->
+          <div class="rad-card">
+            <div class="rad-card-head"><h2>Other signals for <%= f.truncate(signal.competitor_name, 22) %></h2></div>
+            <div class="rad-card-body tight">
+              <div class="rad-table-wrap"><table class="rad-table"><tbody>
+                <% if (!related.length) { %><tr><td class="text-muted-2">None.</td></tr><% } %>
+                <% related.forEach(function (r) { %>
+                  <tr>
+                    <td>
+                      <a class="rad-td-title" href="<%= u('signals/' + r.id) %>"><%= f.truncate(r.title, 58) %></a>
+                      <div class="rad-td-sub"><%= f.signalLabel(r.signal_type) %> · <%= f.timeAgo(r.detected_at) %></div>
+                    </td>
+                    <td class="num"><%= r.confidence %></td>
+                  </tr>
+                <% }); %>
+              </tbody></table></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/foot') %>
